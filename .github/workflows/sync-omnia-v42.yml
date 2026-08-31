@@ -1,0 +1,89 @@
+name: Sync Omnia V4.2 production source
+
+on:
+  push:
+    branches:
+      - omnia-v4-1-live
+    paths:
+      - .github/workflows/sync-omnia-v42.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-production-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Omnia branch
+        uses: actions/checkout@v4
+        with:
+          ref: omnia-v4-1-live
+          fetch-depth: 0
+
+      - name: Fetch and verify exact production source
+        shell: bash
+        run: |
+          set -euo pipefail
+          TARGET="omnia-creative-assets-v4-1/index.html"
+          mkdir -p "$(dirname "$TARGET")"
+          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
+            https://omnia-creative-assets-v4-1-live.vercel.app/ \
+            --output "$TARGET"
+          test "$(wc -c < "$TARGET" | tr -d ' ')" = "391978"
+          echo "9d486e1cc31ed3bfbae33f8cbdfee840223e62f08ebbcc936221d76e4f2b51e0  $TARGET" | sha256sum --check --strict
+          grep -Fq '<title>Omnia — Creative Asset System V4.2 UX</title>' "$TARGET"
+          grep -Fq 'id="v42-ux-workflow"' "$TARGET"
+          grep -Fq 'data-action="submit-design-v42"' "$TARGET"
+
+      - name: Normalize the deployable repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf omnia-creative-assets-v4-1/payload
+          rm -f omnia-creative-assets-v4-1/build.mjs omnia-creative-assets-v4-1/patch-v42.b64
+          cat > omnia-creative-assets-v4-1/package.json <<'JSON'
+          {
+            "name": "omnia-creative-assets-v4-2",
+            "version": "4.2.0",
+            "private": true
+          }
+          JSON
+          cat > omnia-creative-assets-v4-1/vercel.json <<'JSON'
+          {
+            "cleanUrls": true,
+            "trailingSlash": false
+          }
+          JSON
+          cat > omnia-creative-assets-v4-1/README.md <<'MD'
+          # Omnia Creative Asset System — V4.2 UX
+
+          Exact production source for the interactive Omnia Creative Asset System prototype.
+
+          ## Live production
+
+          https://omnia-creative-assets-v4-1-live.vercel.app
+
+          ## Integrity
+
+          - File: `index.html`
+          - Bytes: `391978`
+          - SHA-256: `9d486e1cc31ed3bfbae33f8cbdfee840223e62f08ebbcc936221d76e4f2b51e0`
+          - Title: `Omnia — Creative Asset System V4.2 UX`
+
+          The file is self-contained and can be opened directly or deployed as a static Vercel site.
+          MD
+
+      - name: Commit exact V4.2 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "WSC Omnia Automation"
+          git config user.email "admin@wescalecreators.com"
+          git add -A omnia-creative-assets-v4-1
+          if git diff --cached --quiet; then
+            echo "Repository is already synchronized."
+            exit 0
+          fi
+          git commit -m "Ship exact Omnia V4.2 production source [skip ci]"
+          git push origin HEAD:omnia-v4-1-live
