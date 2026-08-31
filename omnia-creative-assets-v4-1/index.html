@@ -3455,6 +3455,344 @@ body.sidebar-collapsed .sidebar-user .icon-btn { display:none; }
   function openVariationModalV42(brief,conceptId){const concept=brief?.concepts.find(c=>c.id===conceptId);if(!concept)return;const next=`V${concept.assets.length+1} variation`;showModal(`<div class="modal-head"><div><h2>Add variation</h2><p style="margin:5px 0 0;color:#776f82;font-size:9px">Register the variation now. Upload the final file immediately or later.</p></div><button class="modal-close" data-action="close-modal">${icon('x')}</button></div><form id="v3DesignDeliverableForm" data-brief-id="${brief.id}"><div class="modal-body"><div class="form-grid"><input type="hidden" name="conceptId" value="${esc(concept.id)}"><label class="form-label full">Concept<input class="input" value="${esc(concept.name)}" disabled></label><label class="form-label">Variation<input class="input" value="${esc(next)}" disabled></label><label class="form-label">Ratio<select class="select" name="ratio"><option>1:1</option><option>4:5</option><option>9:16</option></select></label><label class="form-label full">Working title / on-image copy<input class="input" name="onImageCopy" placeholder="Optional"></label><label class="form-label full"><span style="display:flex;gap:8px;align-items:center"><input type="checkbox" name="hasFile" value="yes"> Final creative file is already ready</span></label></div><div class="modal-note">A permanent asset ID is minted immediately under ${esc(concept.id)}.</div></div><div class="modal-footer"><button type="button" class="btn btn-ghost" data-action="close-modal">Cancel</button><button type="submit" class="btn btn-primary">${icon('plus')}Add variation</button></div></form>`,'modal-sm');}
   document.addEventListener('click',event=>{const t=event.target.closest('[data-action]');if(!t)return;const a=t.dataset.action;if(a==='toggle-batch-sidebar-v42'){event.preventDefault();ui.v42SidebarOpen=!ui.v42SidebarOpen;render();}if(a==='add-variation-v42'){event.preventDefault();openVariationModalV42(briefById(ui.briefId),t.dataset.conceptId);}if(a==='delete-concept-v42'){event.preventDefault();event.stopPropagation();const brief=briefById(ui.briefId),concept=brief?.concepts.find(c=>c.id===t.dataset.conceptId);if(!brief||!concept)return;if(!window.confirm(`Delete “${concept.name}” and its ${concept.assets.length} variation${concept.assets.length===1?'':'s'}?`))return;brief.concepts=brief.concepts.filter(c=>c.id!==concept.id);brief.v42DesignSubmitted=false;brief.lastUpdated=v4Now();brief.activity.unshift({time:v4Now(),day:'Today',type:'design',title:`${concept.id} deleted`,body:`${concept.name} and its variations were removed from the batch.`});saveState();render();showToast('Concept deleted',`${concept.name} was removed from the batch.`,'success');}if(a==='submit-design-v42'){event.preventDefault();const brief=briefById(ui.briefId);if(!brief)return;const input=document.getElementById('v42FigmaUrl');const url=String(input?.value||'').trim();if(!/^https:\/\//i.test(url)){showToast('Figma link required','Paste the full https:// Figma board URL before submitting.','warning');input?.focus();return;}const missing=brief.concepts.filter(c=>!v42ConceptDesignReady(c));if(missing.length){showToast('Design is incomplete',`${missing.length} concept${missing.length===1?'':'s'} still need every requested final variation.`,'warning');return;}brief.figmaUrl=url;brief.v42DesignSubmitted=true;brief.concepts.forEach(c=>{c.v4DesignApproved=true;c.status='Concept Approved';});brief.stageIndex=Math.max(4,brief.stageIndex);brief.status='Copy in progress';brief.lastUpdated=v4Now();brief.activity.unshift({time:v4Now(),day:'Today',type:'design',title:'Design submitted for copy',body:`${brief.designer} attached the Figma board and handed ${brief.concepts.length} concept${brief.concepts.length===1?'':'s'} to ${brief.copywriter}.`});saveState();render();showToast('Submitted for copy',`${brief.copywriter} now has the final designs and Figma board.`,'success');}},true);
 
+  /* ======================================================================
+     OMNIA CREATIVE ASSET SYSTEM — V4.3 COPY + FINALIZE/EXPORT WORKFLOW
+     ====================================================================== */
+  const V43_VERSION = 'V4.3 Copy + Finalize';
+  const V43_SHA_MARKER = 'OMNIA_V43_COPY_FINALIZE_WORKFLOW';
+  const v43Style = document.createElement('style');
+  v43Style.id = 'v43-copy-finalize-workflow';
+  v43Style.textContent = `
+    .v43-lock-banner{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:11px;border:1px solid rgba(66,226,145,.18);border-radius:12px;background:rgba(32,214,123,.045);color:#a9cabb}.v43-lock-banner svg{width:15px;height:15px;color:#38dc8d}.v43-lock-banner strong{display:block;color:#d9f8e7;font-size:10px}.v43-lock-banner span{display:block;color:#82958b;font-size:8px;margin-top:3px}
+    .v43-copy-shell{display:grid;gap:11px}.v43-copy-head{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px}.v43-copy-head strong{font-size:11px;color:#f0e8f7}.v43-copy-head span{display:block;margin-top:4px;color:#7d7288;font-size:8px;line-height:1.45}.v43-copy-head-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+    .v43-copy-concept{overflow:hidden}.v43-copy-concept>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;cursor:pointer}.v43-copy-concept>summary::-webkit-details-marker{display:none}.v43-copy-concept[open]>summary{border-bottom:1px solid rgba(154,126,196,.11);background:rgba(31,23,50,.48)}.v43-copy-concept-body{padding:13px;display:grid;gap:13px}.v43-primary-copy-grid{display:grid;grid-template-columns:210px minmax(0,1fr);gap:12px;align-items:start}.v43-main-concept-image{border:1px solid rgba(154,126,196,.11);border-radius:11px;background:rgba(9,7,17,.32);padding:10px;min-width:0}.v43-main-concept-image .creative-preview{height:150px;min-height:150px}.v43-main-concept-image h3{margin:9px 0 3px;color:#ded5e6;font-size:9.5px}.v43-main-concept-image p{margin:0;color:#756b80;font-size:7.5px;line-height:1.45}.v43-primary-copy-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:10px;min-width:0}
+    .v43-copy-bank{border:1px solid rgba(154,126,196,.11);border-radius:11px;background:rgba(9,7,17,.28);padding:10px;min-width:0}.v43-copy-bank-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.v43-copy-bank-head div{min-width:0}.v43-copy-bank-head strong{display:block;color:#d8cfdf;font-size:8.5px}.v43-copy-bank-head span{display:block;color:#71677b;font-size:7px;margin-top:3px}.v43-plus-btn{width:28px;height:28px;padding:0!important;justify-content:center;border-radius:8px!important;flex:none}.v43-plus-btn svg{width:13px;height:13px}.v43-copy-option-list{display:grid;gap:7px}.v43-copy-option{display:grid;grid-template-columns:25px minmax(0,1fr) 27px;gap:7px;align-items:start}.v43-copy-option-index{height:28px;border-radius:7px;display:grid;place-items:center;background:rgba(168,85,247,.08);border:1px solid rgba(168,85,247,.14);color:#af7be0;font-size:7px;font-weight:760}.v43-copy-option textarea{min-height:66px;resize:vertical;padding:9px 10px;font-size:8.5px;line-height:1.5}.v43-copy-bank.body textarea{min-height:104px}.v43-remove-copy{width:27px;height:27px;padding:0!important;justify-content:center;color:#a77b86!important}.v43-remove-copy:hover{color:#ff8aa6!important;border-color:rgba(255,91,130,.30)!important}
+    .v43-variation-copy-list{display:grid;gap:8px}.v43-copy-variation{border:1px solid rgba(154,126,196,.10);border-radius:11px;background:rgba(255,255,255,.012);overflow:hidden}.v43-copy-variation>summary{list-style:none;display:grid;grid-template-columns:minmax(150px,.75fr) minmax(250px,1.7fr) auto;gap:10px;align-items:center;padding:10px 11px;cursor:pointer}.v43-copy-variation>summary::-webkit-details-marker{display:none}.v43-copy-variation[open]>summary{border-bottom:1px solid rgba(154,126,196,.10);background:rgba(26,20,43,.46)}.v43-copy-variation-name strong{display:block;color:#d8cfdf;font-size:8.5px}.v43-copy-variation-name span{display:block;color:#706679;font-size:7px;margin-top:3px}.v43-copy-variation-adname{min-width:0}.v43-copy-variation-adname code{display:block;color:#82768e;font-size:6.8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.v43-copy-variation-counts{display:flex;align-items:center;gap:6px;justify-content:flex-end}.v43-copy-variation-body{padding:10px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:10px}.v43-copy-footer{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 15px;position:static!important}.v43-copy-footer p{margin:0;color:#766c80;font-size:8px;line-height:1.5}.v43-copy-footer strong{color:#d9d0e1}.v43-copy-footer .toolbar{flex-wrap:wrap}
+    .v43-import-grid{display:grid;grid-template-columns:1fr;gap:10px}.v43-import-file{border:1px dashed rgba(168,85,247,.25);border-radius:10px;padding:11px;background:rgba(168,85,247,.035)}.v43-import-file label{display:block;color:#bda9cd;font-size:8.5px;font-weight:700;margin-bottom:7px}.v43-import-file input{width:100%;color:#8a8095;font-size:8px}.v43-import-textarea{min-height:280px!important;font-family:var(--mono);font-size:8px!important;line-height:1.55!important}.v43-format-guide{padding:10px;border-radius:9px;background:rgba(255,255,255,.018);border:1px solid rgba(154,126,196,.10);color:#7e7489;font-size:7.5px;line-height:1.55}.v43-format-guide code{color:#b88be3}
+    .v43-finalize-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:12px;align-items:start}.v43-finalize-main{display:grid;gap:10px}.v43-finalize-intro{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px}.v43-finalize-intro strong{display:block;color:#eee6f5;font-size:11px}.v43-finalize-intro span{display:block;color:#776d82;font-size:8px;margin-top:4px;line-height:1.45}.v43-finalize-concept{overflow:hidden}.v43-finalize-concept>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;cursor:pointer}.v43-finalize-concept>summary::-webkit-details-marker{display:none}.v43-finalize-concept[open]>summary{border-bottom:1px solid rgba(154,126,196,.10);background:rgba(30,23,49,.48)}.v43-finalize-assets{padding:11px;display:grid;gap:8px}.v43-final-asset{display:grid;grid-template-columns:108px minmax(0,1fr) 152px;gap:10px;align-items:stretch;border:1px solid rgba(154,126,196,.10);border-radius:11px;background:rgba(9,7,17,.30);padding:9px;min-width:0}.v43-final-preview .creative-preview{height:86px;min-height:86px;border-radius:8px}.v43-final-copy{min-width:0}.v43-final-copy strong{display:block;color:#d7cddd;font-size:8.5px}.v43-final-copy code{display:block;color:#746a7f;font-size:6.8px;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.v43-overlay-list{display:grid;gap:5px;margin-top:8px}.v43-overlay-line{display:grid;grid-template-columns:52px minmax(0,1fr);gap:7px}.v43-overlay-line label{color:#6e6478;font-size:6.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:760}.v43-overlay-line span{color:#a99daf;font-size:7.5px;line-height:1.4;overflow-wrap:anywhere}.v43-final-actions{display:flex;flex-direction:column;justify-content:center;gap:6px}.v43-final-actions .btn{justify-content:center}.v43-final-done{border-color:rgba(32,214,123,.20);background:rgba(32,214,123,.025)}
+    .v43-finalize-side{position:sticky;top:72px;display:grid;gap:10px}.v43-handoff-card{padding:14px}.v43-handoff-card h2{margin:0;color:#eee6f5;font-size:12px}.v43-handoff-card>p{margin:5px 0 12px;color:#7b7085;font-size:8px;line-height:1.5}.v43-progress-list{display:grid;gap:8px;margin:12px 0}.v43-progress-row{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid rgba(154,126,196,.09);border-radius:9px;background:rgba(255,255,255,.012)}.v43-progress-icon{width:22px;height:22px;border-radius:7px;display:grid;place-items:center;background:rgba(168,85,247,.08);color:#a872d8}.v43-progress-icon.done{background:rgba(32,214,123,.08);color:#2fd688}.v43-progress-icon svg{width:12px;height:12px}.v43-progress-row strong{display:block;color:#cfc5d7;font-size:8px}.v43-progress-row span{display:block;color:#6f6579;font-size:6.8px;margin-top:2px}.v43-progress-count{color:#92869d!important;font-size:7.5px!important;margin:0!important}.v43-drive-field label{display:block;color:#74697e;font-size:7px;text-transform:uppercase;letter-spacing:.10em;font-weight:760;margin-bottom:6px}.v43-drive-field .input{height:42px}.v43-submit-launch{margin-top:10px}.v43-submitted-card{border-color:rgba(32,214,123,.22)!important;background:linear-gradient(145deg,rgba(32,214,123,.05),rgba(14,11,23,.7))!important}.v43-submitted-check{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:rgba(32,214,123,.10);color:#31dc8c;margin-bottom:10px}.v43-submitted-check svg{width:22px;height:22px}.v43-submitted-card h2{color:#d8f6e5}.v43-submitted-card p{color:#809589}.v43-submitted-folder{padding:9px;border:1px solid rgba(32,214,123,.14);border-radius:9px;color:#8ca99a;font-size:7.5px;overflow-wrap:anywhere;margin-bottom:9px}
+    .v43-launch-gate{display:flex;align-items:center;gap:10px;padding:11px 13px;margin-bottom:10px;border:1px solid rgba(255,176,32,.18);border-radius:11px;background:rgba(255,176,32,.035);color:#9a8d6f}.v43-launch-gate svg{width:14px;height:14px;color:#ffb020}.v43-launch-gate strong{display:block;color:#d4c7a5;font-size:8.5px}.v43-launch-gate span{display:block;font-size:7.2px;margin-top:3px}.v43-concept-cell strong,.v43-variation-cell strong{display:block;color:#d7cddd;font-size:8.5px}.v43-concept-cell span,.v43-variation-cell span{display:block;color:#746a7e;font-size:7px;margin-top:3px}.v43-launch-disabled{opacity:.45;pointer-events:none}
+    .v3-workspace-tab:disabled{opacity:.48;cursor:not-allowed}.v3-workspace-tab .v43-tab-lock{margin-left:4px;color:#6f657a}.v3-workspace-tab .v43-tab-lock svg{width:10px;height:10px}.v43-stage-readonly .v42-delete-btn,.v43-stage-readonly [data-action="add-variation-v42"],.v43-stage-readonly [data-action="deliver-asset-v3"],.v43-stage-readonly [data-action="submit-design-v42"]{display:none!important}
+    @media(max-width:1180px){.v43-finalize-layout{grid-template-columns:1fr}.v43-finalize-side{position:static}.v43-primary-copy-grid{grid-template-columns:180px minmax(0,1fr)}}
+    @media(max-width:900px){.v43-primary-copy-grid,.v43-primary-copy-panel,.v43-copy-variation-body{grid-template-columns:1fr}.v43-copy-variation>summary{grid-template-columns:1fr auto}.v43-copy-variation-adname{grid-column:1/-1;grid-row:2}.v43-final-asset{grid-template-columns:90px minmax(0,1fr)}.v43-final-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr}.v43-copy-footer{align-items:flex-start;flex-direction:column}}
+    @media(max-width:640px){.v43-final-asset{grid-template-columns:1fr}.v43-final-preview .creative-preview{height:150px}.v43-final-actions{grid-template-columns:1fr}.v43-copy-head{align-items:flex-start;flex-direction:column}.v43-copy-option{grid-template-columns:23px minmax(0,1fr)}.v43-remove-copy{grid-column:2;justify-self:end}}
+  `;
+  document.head.appendChild(v43Style);
+
+  WORKSPACE_TABS_V3.splice(0, WORKSPACE_TABS_V3.length,
+    ['brief','file','Brief'],
+    ['design','image','Design'],
+    ['copy','copy','Copy'],
+    ['finalize','download','Finalize & Export'],
+    ['launch','rocket','Launch'],
+    ['activity','activity','Activity']
+  );
+
+  function v43NormalizeList(value, fallback='') {
+    if (Array.isArray(value)) return value.map(v=>String(v ?? '')).length ? value.map(v=>String(v ?? '')) : [''];
+    const text = String(value ?? fallback ?? '');
+    return [text];
+  }
+  function v43NormalizeState() {
+    state.briefs.forEach(brief => {
+      brief.v43SubmittedForLaunch = Boolean(brief.v43SubmittedForLaunch);
+      brief.v43SubmittedAt = brief.v43SubmittedAt || '';
+      brief.v43FinalsFolderUrl = brief.v43FinalsFolderUrl || brief.driveUrl || '';
+      brief.concepts.forEach(concept => {
+        concept.v43Headlines = v43NormalizeList(concept.v43Headlines, concept.copy?.headline || '');
+        concept.v43Bodies = v43NormalizeList(concept.v43Bodies, concept.copy?.primary || '');
+        concept.assets.forEach(asset => {
+          asset.v43Headlines = v43NormalizeList(asset.v43Headlines, asset.onImageCopy || '');
+          asset.v43Bodies = v43NormalizeList(asset.v43Bodies, '');
+          if (typeof asset.v43OverlayApplied !== 'boolean') asset.v43OverlayApplied = Boolean(v4FileReady(asset) || asset.onImageCopy);
+          if (typeof asset.v43Exported !== 'boolean') asset.v43Exported = Boolean(v4FileReady(asset));
+        });
+      });
+    });
+  }
+  v43NormalizeState();
+
+  function v43NonEmpty(values){ return (values||[]).map(v=>String(v||'').trim()).filter(Boolean); }
+  function v43ConceptCopyReady(concept){ return v43NonEmpty(concept.v43Headlines).length>0 && v43NonEmpty(concept.v43Bodies).length>0; }
+  function v43AllCopyFinal(brief){ return brief.concepts.length>0 && brief.concepts.every(c=>c.v4CopyFinal && v43ConceptCopyReady(c)); }
+  function v43AllDesignReady(brief){ return brief.concepts.length>0 && brief.concepts.every(c=>c.v4DesignApproved && v42ConceptDesignReady(c)); }
+  function v43AllOverlaysApplied(brief){ const rows=v4BatchAssets(brief); return rows.length>0 && rows.every(r=>r.asset.v43OverlayApplied); }
+  function v43AllExported(brief){ const rows=v4BatchAssets(brief); return rows.length>0 && rows.every(r=>r.asset.v43Exported); }
+  function v43FinalizeReady(brief){ return v43AllDesignReady(brief) && v43AllCopyFinal(brief) && v43AllOverlaysApplied(brief) && v43AllExported(brief); }
+  function v43Locked(brief){ return Boolean(brief.v43SubmittedForLaunch); }
+  function v43VersionLabel(concept,asset){ const i=concept.assets.findIndex(a=>a.id===asset.id); return `V${Math.max(1,i+1)}`; }
+  function v43ConceptPreview(concept){
+    const first=concept.assets[0];
+    if(first) return previewV3(first,concept);
+    return previewHTML(concept.referenceType,concept.literalCopy);
+  }
+  function v43EscapeAttr(value){ return esc(String(value??'')); }
+
+  const v42BatchStatus = v4BatchStatus;
+  v4BatchStatus = function(brief){
+    if(brief.v4ManualStatus==='Cancelled') return 'Cancelled';
+    if(!brief.briefSubmitted) return 'Briefing';
+    if(!brief.concepts.length||!brief.concepts.every(c=>c.v4DesignApproved&&v4DesignReady(c))) return 'Design';
+    if(!brief.concepts.every(c=>c.v4CopyFinal&&v43ConceptCopyReady(c))) return 'Copy';
+    if(!brief.v43SubmittedForLaunch) return 'Finalize & Export';
+    return v42BatchStatus(brief);
+  };
+  const v42StageForStatus = v4StageForStatus;
+  v4StageForStatus = function(status){ return status==='Finalize & Export'?'finalize':v42StageForStatus(status); };
+  const v42NextAction = v4NextAction;
+  v4NextAction = function(brief){
+    const status=v4BatchStatus(brief);
+    if(status==='Finalize & Export') return ['download',`Finalize exports · ${brief.designer}`];
+    return v42NextAction(brief);
+  };
+  v4ConceptCopyReady = v43ConceptCopyReady;
+
+  const v42DashboardFilters = v4DashboardFilters;
+  v4DashboardFilters = function(){
+    const html=v42DashboardFilters();
+    if(html.includes('Finalize & Export')) return html;
+    const selected=ui.dashboardFilters.status==='Finalize & Export'?'selected':'';
+    return html.replace('<option value="Launch Ready"',`<option value="Finalize & Export" ${selected}>Finalize & Export</option><option value="Launch Ready"`);
+  };
+
+  detailTabsV3 = function(){
+    const brief=briefById(ui.briefId);
+    const locked=Boolean(brief?.v43SubmittedForLaunch);
+    return `<div class="v3-workspace-tabs">${WORKSPACE_TABS_V3.map(([id,ic,label])=>{
+      const isLocked=locked&&(id==='design'||id==='copy');
+      return `<button class="v3-workspace-tab ${ui.detailTab===id?'active':''}" data-tab="${id}" ${isLocked?'disabled title="Locked after submit for launch"':''}>${icon(ic)}${label}${isLocked?`<span class="v43-tab-lock">${icon('lock')}</span>`:''}</button>`;
+    }).join('')}</div>`;
+  };
+
+  function v43CopyBank({scope,id,kind,values,label,description,locked=false,body=false}){
+    const safe=v43NormalizeList(values,'');
+    return `<section class="v43-copy-bank ${body?'body':''}"><div class="v43-copy-bank-head"><div><strong>${esc(label)}</strong><span>${esc(description)}</span></div>${locked?'':`<button class="btn btn-secondary btn-xs v43-plus-btn" data-action="add-copy-option-v43" data-scope="${scope}" data-id="${esc(id)}" data-kind="${kind}" title="Add another ${esc(label.toLowerCase())}">${icon('plus')}</button>`}</div><div class="v43-copy-option-list">${safe.map((value,index)=>`<div class="v43-copy-option"><span class="v43-copy-option-index">${index+1}</span><textarea class="input" data-v43-copy-scope="${scope}" data-v43-copy-id="${esc(id)}" data-v43-copy-kind="${kind}" data-v43-copy-index="${index}" ${locked?'readonly':''} placeholder="${kind==='headline'?'Write headline option…':'Write body copy option…'}">${esc(value)}</textarea>${locked||safe.length===1?'':`<button class="btn btn-ghost btn-xs v43-remove-copy" data-action="remove-copy-option-v43" data-scope="${scope}" data-id="${esc(id)}" data-kind="${kind}" data-index="${index}" title="Remove option">${icon('x')}</button>`}</div>`).join('')}</div></section>`;
+  }
+
+  function v43CaptureCopyInputs(brief){
+    if(!brief) return;
+    document.querySelectorAll('[data-v43-copy-scope]').forEach(el=>{
+      const scope=el.dataset.v43CopyScope,id=el.dataset.v43CopyId,kind=el.dataset.v43CopyKind,index=Number(el.dataset.v43CopyIndex)||0;
+      let target;
+      if(scope==='concept') target=brief.concepts.find(c=>c.id===id);
+      else target=assetById(id)?.asset;
+      if(!target) return;
+      const key=kind==='headline'?'v43Headlines':'v43Bodies';
+      target[key]=v43NormalizeList(target[key],'');
+      target[key][index]=el.value;
+    });
+    brief.concepts.forEach(concept=>{
+      concept.copy.headline=v43NonEmpty(concept.v43Headlines)[0]||'';
+      concept.copy.primary=v43NonEmpty(concept.v43Bodies)[0]||'';
+    });
+  }
+
+  function renderCopyStageV43(brief){
+    if(!brief.concepts.length) return emptyState('copy','No concepts available','Submit a brief first.');
+    const locked=v43Locked(brief);
+    const allFinal=v43AllCopyFinal(brief);
+    return `<div class="v43-copy-shell">${locked?`<div class="v43-lock-banner">${icon('lock')}<div><strong>Copy is locked</strong><span>This batch was submitted for launch on ${esc(brief.v43SubmittedAt||'the final handoff')}. Copy and design can no longer be changed.</span></div></div>`:''}<div class="glass-card v43-copy-head"><div><strong>Copy workspace · ${esc(brief.copywriter)}</strong><span>One main-concept image. Primary copy lives at the concept level; variation copy stays attached to the exact asset ID.</span></div><div class="v43-copy-head-actions"><span class="badge ${allFinal?'badge-green':'badge-amber'}">${allFinal?'Copy final':'Copy in progress'}</span>${locked?'':`<button class="btn btn-secondary btn-sm" data-action="open-copy-import-v43">${icon('upload')}Import copy document</button>`}</div></div>${brief.concepts.map((concept,index)=>{
+      const conceptReady=v43ConceptCopyReady(concept);
+      return `<details class="glass-card v43-copy-concept" ${index===0?'open':''}><summary><div class="v42-concept-name"><code>${esc(concept.id)}</code><div><strong>Main Concept ${index+1} · ${esc(concept.name)}</strong><span>${concept.assets.length} variation${concept.assets.length===1?'':'s'} · ${v43NonEmpty(concept.v43Headlines).length} headline${v43NonEmpty(concept.v43Headlines).length===1?'':'s'} · ${v43NonEmpty(concept.v43Bodies).length} body option${v43NonEmpty(concept.v43Bodies).length===1?'':'s'}</span></div></div><div class="v42-concept-actions"><span class="badge ${concept.v4CopyFinal?'badge-green':conceptReady?'badge-purple':'badge-amber'}">${concept.v4CopyFinal?'Final':conceptReady?'Ready to finalize':'Needs primary copy'}</span><span class="chev">${icon('chevron-down')}</span></div></summary><div class="v43-copy-concept-body"><div class="v43-primary-copy-grid"><section class="v43-main-concept-image"><div class="v42-card-kicker"><span>Main concept image</span><span>${esc(concept.id)}</span></div>${v43ConceptPreview(concept)}<h3>${esc(concept.name)}</h3><p>This is the only image shown in Copy. Variations below are text-only so the copywriter can move quickly.</p></section><div class="v43-primary-copy-panel">${v43CopyBank({scope:'concept',id:concept.id,kind:'headline',values:concept.v43Headlines,label:'Primary headline',description:'The main headline inherited by the concept.',locked})}${v43CopyBank({scope:'concept',id:concept.id,kind:'body',values:concept.v43Bodies,label:'Primary body copy',description:'The main body copy inherited by the concept.',locked,body:true})}</div></div><div><div class="v42-copy-variations-title"><strong>Variation copy</strong><span>No variation images here. Each row is mapped to one permanent asset ID.</span></div><div class="v43-variation-copy-list">${concept.assets.map((asset,assetIndex)=>`<details class="v43-copy-variation"><summary><div class="v43-copy-variation-name"><strong>${v43VersionLabel(concept,asset)} · ${esc(asset.id)}</strong><span>${esc(concept.name)} variation ${assetIndex+1}</span></div><div class="v43-copy-variation-adname"><code>${esc(adName(brief,concept,asset))}</code></div><div class="v43-copy-variation-counts"><span class="badge badge-muted">${v43NonEmpty(asset.v43Headlines).length} H</span><span class="badge badge-muted">${v43NonEmpty(asset.v43Bodies).length} B</span><span class="chev">${icon('chevron-down')}</span></div></summary><div class="v43-copy-variation-body">${v43CopyBank({scope:'asset',id:asset.id,kind:'headline',values:asset.v43Headlines,label:'Variation headline',description:'Overlay or variation-specific headline options.',locked})}${v43CopyBank({scope:'asset',id:asset.id,kind:'body',values:asset.v43Bodies,label:'Variation body copy',description:'Variation-specific body options or supporting overlay copy.',locked,body:true})}</div></details>`).join('')||'<div style="font-size:8px;color:#746a80;padding:12px">Designer variations have not been registered yet.</div>'}</div></div></div></details>`;
+    }).join('')}<div class="glass-card v43-copy-footer"><p><strong>${locked?'Copy is frozen for launch.':allFinal?'Copy is final and ready for Finalize & Export.':'Save whenever needed. Finalize only after every concept has primary copy.'}</strong><br>${locked?'The permanent record remains available for inspection.':'Imported copy maps by Concept ID and Asset ID, preventing mismatched headlines or bodies.'}</p>${locked?'':`<div class="toolbar"><button class="btn btn-secondary btn-sm" data-action="save-copy-v43">${icon('save')}Save draft</button><button class="btn btn-primary btn-sm" data-action="finalize-copy-v43">${icon('arrow')}Mark copy final + continue</button></div>`}</div></div>`;
+  }
+
+  function v43CopyTemplate(brief){
+    return brief.concepts.map((concept,index)=>`## CONCEPT: ${concept.id} | ${concept.name}\nPRIMARY HEADLINE:\n${v43NonEmpty(concept.v43Headlines)[0]||''}\n\nPRIMARY BODY COPY:\n${v43NonEmpty(concept.v43Bodies)[0]||''}\n\n${concept.assets.map((asset,i)=>`### VARIATION: ${asset.id} | V${i+1}\nHEADLINE:\n${v43NonEmpty(asset.v43Headlines)[0]||''}\n\nBODY COPY:\n${v43NonEmpty(asset.v43Bodies)[0]||''}`).join('\n\n')}`).join('\n\n---\n\n');
+  }
+
+  function openCopyImportV43(brief){
+    const template=v43CopyTemplate(brief);
+    showModal(`<div class="modal-head"><div><h2>Import copy document</h2><p style="margin:5px 0 0;color:#776f82;font-size:9px">Omnia maps copy to the correct concept and variation using permanent IDs.</p></div><button class="modal-close" data-action="close-modal">${icon('x')}</button></div><div class="modal-body"><div class="v43-import-grid"><div class="v43-import-file"><label>Upload .txt, .md, or .json</label><input type="file" id="v43CopyImportFile" accept=".txt,.md,.json,text/plain,application/json"></div><textarea class="input v43-import-textarea" id="v43CopyImportText" placeholder="Paste the copy document here…"></textarea><div class="v43-format-guide"><strong>Supported structure</strong><br><code>## CONCEPT: C-4471 | Live With Tom</code><br><code>PRIMARY HEADLINE:</code> …<br><code>PRIMARY BODY COPY:</code> …<br><code>### VARIATION: A7K3QP | V1</code><br><code>HEADLINE:</code> …<br><code>BODY COPY:</code> …<br><br>JSON is also supported with <code>concepts[].id, headlines, bodies, variations[].id</code>.</div></div></div><div class="modal-footer"><button class="btn btn-ghost" data-action="download-copy-template-v43">${icon('download')}Download template</button><button class="btn btn-secondary" data-action="load-copy-template-v43">Load current template</button><button class="btn btn-primary" data-action="apply-copy-import-v43">${icon('upload')}Import and map copy</button></div>`,'modal-lg');
+    const ta=document.getElementById('v43CopyImportText');
+    if(ta) ta.dataset.template=template;
+  }
+
+  function v43ResolveConcept(brief,token){
+    const t=String(token||'').trim().toLowerCase();
+    return brief.concepts.find(c=>c.id.toLowerCase()===t)||brief.concepts.find(c=>c.name.toLowerCase()===t)||brief.concepts.find(c=>t.includes(c.id.toLowerCase()))||brief.concepts.find(c=>t.includes(c.name.toLowerCase()));
+  }
+  function v43ResolveAsset(concept,token,version){
+    const t=String(token||'').trim().toLowerCase();
+    let asset=concept?.assets.find(a=>a.id.toLowerCase()===t)||concept?.assets.find(a=>t.includes(a.id.toLowerCase()));
+    if(!asset&&version) asset=concept?.assets[Math.max(0,Number(version)-1)];
+    return asset;
+  }
+  function v43ImportJson(data,brief){
+    let concepts=Array.isArray(data)?data:(data.concepts||[]),conceptCount=0,assetCount=0,copyCount=0;
+    concepts.forEach(item=>{
+      const concept=v43ResolveConcept(brief,item.id||item.conceptId||item.name);
+      if(!concept) return;
+      conceptCount++;
+      if(Array.isArray(item.headlines)||item.headline){ concept.v43Headlines=v43NormalizeList(item.headlines||item.headline,''); copyCount+=v43NonEmpty(concept.v43Headlines).length; }
+      if(Array.isArray(item.bodies)||item.body||item.bodyCopy){ concept.v43Bodies=v43NormalizeList(item.bodies||item.body||item.bodyCopy,''); copyCount+=v43NonEmpty(concept.v43Bodies).length; }
+      (item.variations||item.assets||[]).forEach(v=>{
+        const asset=v43ResolveAsset(concept,v.id||v.assetId,v.version||v.variation);
+        if(!asset) return;
+        assetCount++;
+        if(Array.isArray(v.headlines)||v.headline){ asset.v43Headlines=v43NormalizeList(v.headlines||v.headline,''); copyCount+=v43NonEmpty(asset.v43Headlines).length; }
+        if(Array.isArray(v.bodies)||v.body||v.bodyCopy){ asset.v43Bodies=v43NormalizeList(v.bodies||v.body||v.bodyCopy,''); copyCount+=v43NonEmpty(asset.v43Bodies).length; }
+      });
+    });
+    return {conceptCount,assetCount,copyCount};
+  }
+  function v43ImportText(text,brief){
+    const lines=String(text||'').replace(/\r\n?/g,'\n').split('\n');
+    let concept=null,asset=null,field=null,buffer=[],conceptCount=0,assetCount=0,copyCount=0;
+    const cleared=new Set();
+    const flush=()=>{
+      if(!field) return;
+      const value=buffer.join('\n').trim(); buffer=[];
+      if(!value){field=null;return;}
+      const target=asset||concept;
+      if(!target){field=null;return;}
+      const scope=asset?'asset':'concept',key=field==='headline'?'v43Headlines':'v43Bodies',clearKey=`${scope}:${target.id}:${key}`;
+      if(!cleared.has(clearKey)){target[key]=[];cleared.add(clearKey);}
+      target[key].push(value); copyCount++; field=null;
+    };
+    lines.forEach(raw=>{
+      const line=raw.trim();
+      let m;
+      if((m=line.match(/^#{0,6}\s*(?:MAIN\s+)?CONCEPT(?:\s+ID)?\s*[:|\-]\s*([^|]+)(?:\|\s*(.+))?$/i))){
+        flush(); concept=v43ResolveConcept(brief,m[1])||v43ResolveConcept(brief,m[2]); asset=null; field=null; if(concept)conceptCount++; return;
+      }
+      if((m=line.match(/^#{0,6}\s*(?:VARIATION|ASSET)(?:\s+ID)?\s*[:|\-]\s*([^|]+)(?:\|\s*V?(\d+))?$/i))){
+        flush(); asset=v43ResolveAsset(concept,m[1],m[2]); field=null; if(asset)assetCount++; return;
+      }
+      if((m=line.match(/^#{1,6}\s*V(\d+)(?:\s*[|:\-]\s*([A-Z0-9-]+))?/i))){
+        flush(); asset=v43ResolveAsset(concept,m[2],m[1]); field=null; if(asset)assetCount++; return;
+      }
+      if((m=line.match(/^(?:PRIMARY\s+)?HEADLINE(?:\s+\d+)?\s*:\s*(.*)$/i))){flush();field='headline';if(m[1])buffer=[m[1]];return;}
+      if((m=line.match(/^(?:PRIMARY\s+)?BODY(?:\s+COPY)?(?:\s+\d+)?\s*:\s*(.*)$/i))){flush();field='body';if(m[1])buffer=[m[1]];return;}
+      if(/^---+$/.test(line)){flush();asset=null;return;}
+      if(field) buffer.push(raw);
+    });
+    flush();
+    return {conceptCount:new Set(brief.concepts.filter(c=>cleared.has(`concept:${c.id}:v43Headlines`)||cleared.has(`concept:${c.id}:v43Bodies`)).map(c=>c.id)).size,assetCount:new Set(brief.concepts.flatMap(c=>c.assets).filter(a=>cleared.has(`asset:${a.id}:v43Headlines`)||cleared.has(`asset:${a.id}:v43Bodies`)).map(a=>a.id)).size,copyCount};
+  }
+  function v43ApplyImport(text,brief){
+    let result;
+    try{ const parsed=JSON.parse(text); result=v43ImportJson(parsed,brief); }
+    catch(_){ result=v43ImportText(text,brief); }
+    brief.concepts.forEach(c=>{c.copy.headline=v43NonEmpty(c.v43Headlines)[0]||'';c.copy.primary=v43NonEmpty(c.v43Bodies)[0]||'';c.v4CopyFinal=false;});
+    brief.lastUpdated=v4Now();
+    brief.activity.unshift({time:v4Now(),day:'Today',type:'copy',title:'Copy document imported',body:`Mapped ${result.copyCount} copy block${result.copyCount===1?'':'s'} across ${result.conceptCount} concept${result.conceptCount===1?'':'s'} and ${result.assetCount} variation${result.assetCount===1?'':'s'}.`});
+    saveState(); closeModal(); render(); showToast('Copy mapped successfully',`${result.copyCount} copy blocks were assigned by permanent ID.`,'success');
+  }
+
+  function v43SaveCopy(finalize=false){
+    const brief=briefById(ui.briefId); if(!brief||v43Locked(brief))return;
+    v43CaptureCopyInputs(brief);
+    const missing=brief.concepts.filter(c=>!v43ConceptCopyReady(c));
+    if(finalize&&missing.length){showToast('Primary copy is incomplete',`${missing.length} concept${missing.length===1?'':'s'} still need a primary headline and primary body copy.`,'warning');render();return;}
+    brief.concepts.forEach(c=>{c.v4CopyFinal=finalize;c.status=finalize?'Copy Final':'Copy in progress';});
+    brief.status=finalize?'Finalize & Export':'Copy in progress';
+    brief.stageIndex=Math.max(brief.stageIndex,finalize?6:5);
+    brief.lastUpdated=v4Now();
+    brief.activity.unshift({time:v4Now(),day:'Today',type:'copy',title:finalize?'Copy finalized':'Copy draft saved',body:finalize?`${brief.copywriter} finalized primary and variation-level copy for ${brief.concepts.length} concept${brief.concepts.length===1?'':'s'}.`:'The current primary and variation-level copy was saved in Omnia.'});
+    saveState();
+    if(finalize){ui.detailTab='finalize';v4SetHash(`#batch/${encodeURIComponent(brief.id)}/finalize`);showToast('Copy finalized','The designer can now apply overlay copy and export finals.','success');}
+    else showToast('Copy draft saved','All concept and variation copy is stored in Omnia.','success');
+    render();
+  }
+
+  function v43CopySummary(asset,concept){
+    const headlines=v43NonEmpty(asset.v43Headlines).length?v43NonEmpty(asset.v43Headlines):v43NonEmpty(concept.v43Headlines);
+    const bodies=v43NonEmpty(asset.v43Bodies).length?v43NonEmpty(asset.v43Bodies):v43NonEmpty(concept.v43Bodies);
+    return {headlines,bodies};
+  }
+  function v43FinalAssetCard(brief,concept,asset,index,locked){
+    const copy=v43CopySummary(asset,concept),done=asset.v43OverlayApplied&&asset.v43Exported;
+    return `<article class="v43-final-asset ${done?'v43-final-done':''}"><div class="v43-final-preview">${previewV3(asset,concept,true)}</div><div class="v43-final-copy"><strong>${v43VersionLabel(concept,asset)} · ${esc(asset.id)} · ${esc(concept.name)}</strong><code>${esc(adName(brief,concept,asset))}</code><div class="v43-overlay-list"><div class="v43-overlay-line"><label>Headline</label><span>${esc(copy.headlines.join(' / ')||'No variation headline; use primary concept headline.')}</span></div><div class="v43-overlay-line"><label>Body copy</label><span>${esc(copy.bodies.join(' / ')||'No variation body; use primary concept body copy.')}</span></div></div></div><div class="v43-final-actions">${locked?`<span class="badge ${asset.v43OverlayApplied?'badge-green':'badge-amber'}">${asset.v43OverlayApplied?'Overlay applied':'Overlay pending'}</span><span class="badge ${asset.v43Exported?'badge-green':'badge-amber'}">${asset.v43Exported?'Final exported':'Export pending'}</span>`:`<button class="btn ${asset.v43OverlayApplied?'btn-secondary':'btn-primary'} btn-xs" data-action="toggle-overlay-v43" data-asset-id="${asset.id}">${asset.v43OverlayApplied?icon('check')+'Overlay applied':icon('copy')+'Mark overlay applied'}</button><button class="btn ${asset.v43Exported?'btn-secondary':'btn-primary'} btn-xs" data-action="export-final-v43" data-asset-id="${asset.id}" ${!asset.v43OverlayApplied||asset.v43Exported?'disabled':''}>${asset.v43Exported?icon('check')+'Final exported':icon('download')+'Finalize & export'}</button>`}<button class="btn btn-ghost btn-xs" data-open-asset="${asset.id}">${icon('eye')}Inspect</button></div></article>`;
+  }
+  function renderFinalizeStageV43(brief){
+    const rows=v4BatchAssets(brief),locked=v43Locked(brief),copyCount=brief.concepts.filter(c=>c.v4CopyFinal&&v43ConceptCopyReady(c)).length,overlayCount=rows.filter(r=>r.asset.v43OverlayApplied).length,exportCount=rows.filter(r=>r.asset.v43Exported).length,ready=v43FinalizeReady(brief);
+    return `<div class="v43-finalize-layout"><main class="v43-finalize-main"><div class="glass-card v43-finalize-intro"><div><strong>Finalize & Export · ${esc(brief.designer)}</strong><span>Apply the approved overlay copy in Figma, export each final creative, then hand the Google Drive finals folder to the media buyer.</span></div><span class="badge ${locked?'badge-green':ready?'badge-purple':'badge-amber'}">${locked?'Submitted for launch':ready?'Ready to submit':'Finalizing assets'}</span></div>${brief.concepts.map((concept,index)=>{const conceptRows=concept.assets,complete=conceptRows.filter(a=>a.v43OverlayApplied&&a.v43Exported).length;return `<details class="glass-card v43-finalize-concept" ${index===0?'open':''}><summary><div class="v42-concept-name"><code>${esc(concept.id)}</code><div><strong>${esc(concept.name)}</strong><span>${complete}/${conceptRows.length} final variation${conceptRows.length===1?'':'s'} exported</span></div></div><div class="v42-concept-actions"><span class="badge ${complete===conceptRows.length&&conceptRows.length?'badge-green':'badge-amber'}">${complete===conceptRows.length&&conceptRows.length?'Complete':'In progress'}</span><span class="chev">${icon('chevron-down')}</span></div></summary><div class="v43-finalize-assets">${conceptRows.map((asset,i)=>v43FinalAssetCard(brief,concept,asset,i,locked)).join('')||'<div style="font-size:8px;color:#746a80;padding:12px">No variations are registered for this concept.</div>'}</div></details>`;}).join('')}</main><aside class="v43-finalize-side">${locked?`<section class="glass-card v43-handoff-card v43-submitted-card"><div class="v43-submitted-check">${icon('check')}</div><h2>Submitted for launch</h2><p>The media buyer has the frozen ad names and final Drive folder. Design and Copy are now locked.</p><div class="v43-submitted-folder">${esc(brief.v43FinalsFolderUrl||brief.driveUrl)}</div><button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center" data-action="open-url" data-url="${esc(brief.v43FinalsFolderUrl||brief.driveUrl)}">${icon('external')}Open finals folder</button></section>`:`<section class="glass-card v43-handoff-card"><h2>Launch handoff</h2><p>Every checkpoint must be complete before the media buyer receives this batch.</p><div class="v43-progress-list"><div class="v43-progress-row"><span class="v43-progress-icon ${copyCount===brief.concepts.length&&brief.concepts.length?'done':''}">${icon(copyCount===brief.concepts.length&&brief.concepts.length?'check':'copy')}</span><div><strong>Copy finalized</strong><span>Primary and variation copy is approved.</span></div><span class="v43-progress-count">${copyCount}/${brief.concepts.length}</span></div><div class="v43-progress-row"><span class="v43-progress-icon ${overlayCount===rows.length&&rows.length?'done':''}">${icon(overlayCount===rows.length&&rows.length?'check':'edit')}</span><div><strong>Overlay copy applied</strong><span>Designer added the approved copy to graphics.</span></div><span class="v43-progress-count">${overlayCount}/${rows.length}</span></div><div class="v43-progress-row"><span class="v43-progress-icon ${exportCount===rows.length&&rows.length?'done':''}">${icon(exportCount===rows.length&&rows.length?'check':'download')}</span><div><strong>Finals exported</strong><span>Every creative is finalized and export-ready.</span></div><span class="v43-progress-count">${exportCount}/${rows.length}</span></div></div><div class="v43-drive-field"><label for="v43FinalsFolderUrl">Required Google Drive finals folder</label><input class="input" id="v43FinalsFolderUrl" value="${esc(brief.v43FinalsFolderUrl||'')}" placeholder="https://drive.google.com/drive/folders/…"></div><button class="btn btn-primary btn-handoff v43-submit-launch" data-action="submit-launch-v43" ${ready?'':'disabled'}>${icon('rocket')}Submit for launch</button><div class="modal-note" style="margin-top:9px">Submitting freezes the creative record and locks Design + Copy.</div></section>`}</aside></div>`;
+  }
+
+  const renderDesignStageV42Base=renderDesignStageV4;
+  renderDesignStageV4=function(brief){
+    const html=renderDesignStageV42Base(brief);
+    if(!v43Locked(brief)) return html;
+    return `<div class="v43-stage-readonly"><div class="v43-lock-banner">${icon('lock')}<div><strong>Design is locked</strong><span>This batch has already been submitted for launch. The final design record is read-only.</span></div></div>${html}</div>`;
+  };
+
+  function v43LaunchRow(brief,concept,asset){
+    const disposition=v4Disposition(asset,concept),version=v43VersionLabel(concept,asset),drive=brief.v43FinalsFolderUrl||brief.driveUrl||'';
+    const disabled=!brief.v43SubmittedForLaunch?'v43-launch-disabled':'';
+    return `<tr><td><div class="v43-concept-cell"><strong>${esc(concept.name)}</strong><span>${esc(concept.id)}</span></div></td><td><div class="v43-variation-cell"><strong>${version} · ${esc(asset.id)}</strong><span>Variation ${concept.assets.indexOf(asset)+1}</span></div></td><td class="ad-name-cell"><div class="ad-name-wrap"><code>${esc(adName(brief,concept,asset))}</code><button class="copy-inline" data-copy-text="${esc(adName(brief,concept,asset))}">${icon('copy')}</button></div></td><td><div class="v3-file-actions"><button class="btn btn-secondary btn-xs" data-action="download-creative" data-asset-id="${asset.id}">${icon('download')}Download</button><button class="btn btn-ghost btn-xs" data-action="open-url" data-url="${esc(drive)}">${icon('external')}Drive</button></div></td><td>${v4StatusPill(disposition==='ready'?'Launch Ready':disposition[0].toUpperCase()+disposition.slice(1))}</td><td><div class="v4-decision-group ${disabled}"><button class="v4-decision-btn live ${disposition==='live'?'active':''}" data-action="set-disposition-v4" data-asset-id="${asset.id}" data-disposition="live">Live</button><button class="v4-decision-btn backlog ${disposition==='backlog'?'active':''}" data-action="set-disposition-v4" data-asset-id="${asset.id}" data-disposition="backlog">Backlog</button><button class="v4-decision-btn cancelled ${disposition==='cancelled'?'active':''}" data-action="set-disposition-v4" data-asset-id="${asset.id}" data-disposition="cancelled">Cancel</button></div></td></tr>`;
+  }
+  renderLaunchStageV4=function(brief,assets){
+    const rows=v4BatchAssets(brief),counts={ready:0,live:0,backlog:0,cancelled:0,blocked:0};rows.forEach(({asset,concept})=>{const d=v4Disposition(asset,concept);if(counts[d]!==undefined)counts[d]++;});const status=v4BatchStatus(brief);
+    return `<div>${brief.v43SubmittedForLaunch?'':`<div class="v43-launch-gate">${icon('lock')}<div><strong>Launch decisions are waiting on Finalize & Export</strong><span>The table is visible for review, but launch decisions unlock only after the designer submits the Google Drive finals folder.</span></div></div>`}<div class="v4-role-callout"><div class="icon">${icon('rocket')}</div><div><strong>Media Buyer handoff · ${esc(brief.mediaBuyer)}</strong><p>Review the concept, variation, finalized ad name, final creative and Drive source, then mark each variation Live, Backlog, or Cancelled.</p></div><div class="toolbar"><button class="btn btn-secondary btn-sm" data-action="copy-stage-link-v4" data-brief-id="${brief.id}" data-stage="launch">${icon('copy')}Copy Launch URL</button><button class="btn btn-primary btn-sm" data-action="open-media-batch" data-brief-id="${brief.id}">${icon('rocket')}Open global queue</button></div></div><div class="v4-launch-summary"><div class="v4-launch-stat"><span>Batch status</span><strong style="font-size:13px">${esc(status)}</strong></div><div class="v4-launch-stat"><span>Ready</span><strong>${counts.ready}</strong></div><div class="v4-launch-stat"><span>Live</span><strong>${counts.live}</strong></div><div class="v4-launch-stat"><span>Backlog</span><strong>${counts.backlog}</strong></div><div class="v4-launch-stat"><span>Cancelled</span><strong>${counts.cancelled}</strong></div></div><section class="glass-card"><div class="launch-table-wrap"><table class="launch-table"><thead><tr><th>Concept</th><th>Variation</th><th>Finalized ad name</th><th>Final creative</th><th>Current state</th><th>Launch decision</th></tr></thead><tbody>${rows.map(({asset,concept})=>v43LaunchRow(brief,concept,asset)).join('')||`<tr><td colspan="6">${emptyState('rocket','Nothing ready','Complete design, copy and Finalize & Export first.')}</td></tr>`}</tbody></table></div></section><div class="v4-batch-close"><p><strong>Close the full batch.</strong><br>Omnia closes automatically when every creative is Live or every creative is Cancelled. A mixed Live/Backlog/Cancelled batch requires a deliberate manual close.</p><div class="toolbar">${brief.v4Closed?`<span class="badge badge-green">${icon('check')}Closed ${esc(brief.v4ClosedAt||'')}</span><button class="btn btn-ghost btn-sm" data-action="reopen-batch-v4" data-brief-id="${brief.id}">Reopen</button>`:`<button class="btn btn-secondary btn-sm" data-action="close-batch-v4" data-brief-id="${brief.id}" ${!brief.v43SubmittedForLaunch||!['Partial','Backlog'].includes(status)?'disabled':''}>${icon('lock')}Close mixed batch</button>`}</div></div></div>`;
+  };
+
+  renderDetailContentV4=function(brief,assets){
+    if(v43Locked(brief)&&(ui.detailTab==='design'||ui.detailTab==='copy')) return `<div class="glass-card" style="padding:30px;text-align:center"><div class="empty-state-icon" style="margin:0 auto 12px">${icon('lock')}</div><h2 style="font-size:14px;margin:0 0 6px">${ui.detailTab==='design'?'Design':'Copy'} is locked</h2><p style="color:#786e82;font-size:9px;max-width:460px;margin:0 auto 14px;line-height:1.55">This batch was submitted for launch on ${esc(brief.v43SubmittedAt||'the final handoff')}. Open Finalize & Export or Launch to inspect the frozen record.</p><button class="btn btn-primary btn-sm" data-tab="finalize">${icon('download')}Open Finalize & Export</button></div>`;
+    switch(ui.detailTab){case'brief':return renderBriefStageV4(brief);case'design':return renderDesignStageV4(brief);case'copy':return renderCopyStageV43(brief);case'finalize':return renderFinalizeStageV43(brief);case'launch':return renderLaunchStageV4(brief,assets);case'activity':return renderActivityStageV3(brief);default:return renderBriefStageV4(brief);}
+  };
+
+  function v43AddOption(scope,id,kind){
+    const brief=briefById(ui.briefId);if(!brief||v43Locked(brief))return;v43CaptureCopyInputs(brief);
+    const target=scope==='concept'?brief.concepts.find(c=>c.id===id):assetById(id)?.asset;if(!target)return;
+    const key=kind==='headline'?'v43Headlines':'v43Bodies';target[key]=v43NormalizeList(target[key],'');target[key].push('');
+    if(scope==='concept'){const c=target;c.v4CopyFinal=false;}
+    saveState();render();requestAnimationFrame(()=>{const fields=[...document.querySelectorAll(`[data-v43-copy-scope="${scope}"][data-v43-copy-id="${CSS.escape(id)}"][data-v43-copy-kind="${kind}"]`)];const el=fields[fields.length-1];el?.focus();});
+  }
+  function v43RemoveOption(scope,id,kind,index){
+    const brief=briefById(ui.briefId);if(!brief||v43Locked(brief))return;v43CaptureCopyInputs(brief);
+    const target=scope==='concept'?brief.concepts.find(c=>c.id===id):assetById(id)?.asset;if(!target)return;
+    const key=kind==='headline'?'v43Headlines':'v43Bodies';target[key]=v43NormalizeList(target[key],'');if(target[key].length>1)target[key].splice(index,1);if(scope==='concept')target.v4CopyFinal=false;saveState();render();
+  }
+  function v43ToggleOverlay(assetId){
+    const result=assetById(assetId);if(!result?.asset||v43Locked(result.brief))return;result.asset.v43OverlayApplied=!result.asset.v43OverlayApplied;if(!result.asset.v43OverlayApplied)result.asset.v43Exported=false;result.brief.lastUpdated=v4Now();saveState();render();showToast(result.asset.v43OverlayApplied?'Overlay applied':'Overlay reopened',`${assetId} is ${result.asset.v43OverlayApplied?'ready for final export':'back in overlay editing'}.`,'success');
+  }
+  function v43ExportFinal(assetId){
+    const result=assetById(assetId);if(!result?.asset||v43Locked(result.brief))return;const {asset,brief}=result;if(!asset.v43OverlayApplied){showToast('Apply overlay copy first','The designer must confirm the approved overlay copy before exporting.','warning');return;}asset.v43Exported=true;asset.deliveredAt=asset.deliveredAt||v4Now();asset.deliveredBy=brief.designer;asset.workflowStatus='Delivered';if(asset.status!=='Launched')asset.status='Ready';asset.fileName=asset.fileName||`${adName(brief,result.concept,asset)}.png`;brief.lastUpdated=v4Now();brief.activity.unshift({time:v4Now(),day:'Today',type:'deliver',title:`${asset.id} finalized and exported`,body:`${brief.designer} applied overlay copy and exported the final creative.`});saveState();render();showToast('Final exported',`${asset.id} is ready for the Drive finals folder.`,'success');
+  }
+  function v43SubmitLaunch(){
+    const brief=briefById(ui.briefId);if(!brief||v43Locked(brief))return;const input=document.getElementById('v43FinalsFolderUrl'),url=String(input?.value||brief.v43FinalsFolderUrl||'').trim();
+    if(!v43AllDesignReady(brief)){showToast('Design is not final','Every concept must be approved before launch handoff.','warning');return;}
+    if(!v43AllCopyFinal(brief)){showToast('Copy is not final','Finalize all primary copy before launch handoff.','warning');return;}
+    if(!v43AllOverlaysApplied(brief)||!v43AllExported(brief)){showToast('Final exports are incomplete','Apply overlay copy and export every variation before submitting.','warning');return;}
+    if(!/^https:\/\/(?:drive\.google\.com|docs\.google\.com)\//i.test(url)){showToast('Google Drive folder required','Paste a full Google Drive finals-folder URL before submitting.','warning');input?.focus();return;}
+    brief.v43FinalsFolderUrl=url;brief.driveUrl=url;brief.v43SubmittedForLaunch=true;brief.v43SubmittedAt=v4Now();brief.status='Launch ready';brief.stageIndex=Math.max(brief.stageIndex,7);brief.concepts.forEach(c=>c.assets.forEach(a=>{if(!['live','backlog','cancelled'].includes(a.v4Disposition))a.v4Disposition='ready';if(a.status!=='Launched')a.status='Ready';a.workflowStatus='Delivered';}));brief.lastUpdated=v4Now();brief.activity.unshift({time:v4Now(),day:'Today',type:'launch',title:'Batch submitted for launch',body:`${brief.designer} attached the Google Drive finals folder and locked Design + Copy for ${brief.mediaBuyer}.`});saveState();ui.detailTab='launch';v4SetHash(`#batch/${encodeURIComponent(brief.id)}/launch`);render();showToast('Submitted for launch',`${brief.mediaBuyer} now has the final Drive folder and frozen ad names.`,'success');
+  }
+
+  document.addEventListener('click',event=>{
+    const t=event.target.closest('[data-action]');if(!t)return;const action=t.dataset.action;
+    if(action==='open-copy-import-v43'||action==='open-bulk-copy-import'){event.preventDefault();event.stopImmediatePropagation();const brief=briefById(ui.briefId);if(brief&&!v43Locked(brief))openCopyImportV43(brief);return;}
+    if(action==='add-copy-option-v43'){event.preventDefault();event.stopImmediatePropagation();v43AddOption(t.dataset.scope,t.dataset.id,t.dataset.kind);return;}
+    if(action==='remove-copy-option-v43'){event.preventDefault();event.stopImmediatePropagation();v43RemoveOption(t.dataset.scope,t.dataset.id,t.dataset.kind,Number(t.dataset.index));return;}
+    if(action==='save-copy-v43'){event.preventDefault();event.stopImmediatePropagation();v43SaveCopy(false);return;}
+    if(action==='finalize-copy-v43'){event.preventDefault();event.stopImmediatePropagation();v43SaveCopy(true);return;}
+    if(action==='load-copy-template-v43'){event.preventDefault();event.stopImmediatePropagation();const ta=document.getElementById('v43CopyImportText');if(ta)ta.value=ta.dataset.template||v43CopyTemplate(briefById(ui.briefId));return;}
+    if(action==='download-copy-template-v43'){event.preventDefault();event.stopImmediatePropagation();const brief=briefById(ui.briefId);downloadTextFile(`${brief.slug}_copy_template.txt`,v43CopyTemplate(brief));return;}
+    if(action==='apply-copy-import-v43'){event.preventDefault();event.stopImmediatePropagation();const text=document.getElementById('v43CopyImportText')?.value||'';if(!text.trim()){showToast('No copy found','Upload or paste a copy document first.','warning');return;}v43ApplyImport(text,briefById(ui.briefId));return;}
+    if(action==='toggle-overlay-v43'){event.preventDefault();event.stopImmediatePropagation();v43ToggleOverlay(t.dataset.assetId);return;}
+    if(action==='export-final-v43'){event.preventDefault();event.stopImmediatePropagation();v43ExportFinal(t.dataset.assetId);return;}
+    if(action==='submit-launch-v43'){event.preventDefault();event.stopImmediatePropagation();v43SubmitLaunch();return;}
+    if(action==='noop-v43'){event.preventDefault();event.stopImmediatePropagation();return;}
+    if(action==='set-disposition-v4'&&!briefById(ui.briefId)?.v43SubmittedForLaunch&&ui.view==='detail'){event.preventDefault();event.stopImmediatePropagation();showToast('Finalize & Export first','The designer must submit the Google Drive finals folder before launch decisions unlock.','warning');return;}
+  },true);
+  document.addEventListener('change',event=>{
+    if(event.target.id==='v43CopyImportFile'){
+      const file=event.target.files?.[0];if(!file)return;const reader=new FileReader();reader.onload=()=>{const ta=document.getElementById('v43CopyImportText');if(ta)ta.value=String(reader.result||'');};reader.readAsText(file);
+    }
+  });
+  document.addEventListener('input',event=>{
+    if(event.target.id==='v43FinalsFolderUrl'){
+      const brief=briefById(ui.briefId);if(brief)brief.v43FinalsFolderUrl=event.target.value;
+      const btn=document.querySelector('[data-action="submit-launch-v43"]');if(btn)btn.disabled=!v43FinalizeReady(brief);
+    }
+  });
+
+  document.title='Omnia — Creative Asset System V4.3';
+  if(v4Env)v4Env.innerHTML='<span></span>V4.3';
+  saveState();
+  console.info(V43_SHA_MARKER);
+
+
   render();
 })();
 
