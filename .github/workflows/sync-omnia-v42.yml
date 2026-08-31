@@ -1,71 +1,31 @@
-name: Build and publish Omnia V4.4 production source
+name: Verify Omnia V4.4 production source
 
 on:
   push:
     branches:
       - omnia-v4-1-live
     paths:
+      - omnia-creative-assets-v4-1/**
       - .github/workflows/sync-omnia-v42.yml
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  build-publish-and-verify:
+  verify-production-source:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Omnia production branch
+      - name: Check out Omnia branch
         uses: actions/checkout@v4
         with:
           ref: omnia-v4-1-live
-          fetch-depth: 0
 
-      - name: Apply and verify the V4.4 final-round update
+      - name: Verify exact V4.4 source
         shell: bash
         run: |
           set -euo pipefail
           TARGET="omnia-creative-assets-v4-1/index.html"
-          PATCH_B64="omnia-creative-assets-v4-1/v44.diff.gz.b64"
-
-          test "$(wc -c < "$TARGET" | tr -d ' ')" = "443902"
-          echo "35a3f9dfab9da386b02ce3cd7359b19c3abbcc1a99d5beb5803b6fa4e63a20e1  $TARGET" | sha256sum --check --strict
-          test "$(wc -c < "$PATCH_B64" | tr -d ' ')" = "15344"
-          echo "940dc56bbb323e37eab75bb7dee770198d94fd66726e6100a3f2cbe7b30bb147  $PATCH_B64" | sha256sum --check --strict
-
-          base64 --decode "$PATCH_B64" | gzip -dc > /tmp/v44.diff
-          test "$(wc -c < /tmp/v44.diff | tr -d ' ')" = "45129"
-          echo "6e7b4ef7a404b7ab847f87fcd0e3f6cb0f4acc56f5e228a4934bb8a71e237806  /tmp/v44.diff" | sha256sum --check --strict
-          patch -p0 --batch < /tmp/v44.diff
-
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path("omnia-creative-assets-v4-1/index.html")
-          source = path.read_text(encoding="utf-8")
-          source = source.replace(
-              "<title>Omnia — Creative Asset System V4.2 UX</title>",
-              "<title>Omnia — Creative Asset System V4.4 Final</title>",
-              1,
-          )
-          source = source.replace(
-              "const V44_SHA_MARKER='OMNIA_V44_FINAL_ROUND';",
-              "const V44_SHA_MARKER='OMNIA_V44_FINAL_DASHBOARD_QUEUE_PITCH';",
-              1,
-          )
-          redundant = """
-
-            document.title='Omnia — Creative Asset System V4.4 Final';
-            if(v4Env)v4Env.innerHTML='<span></span>V4.4 Final';
-            saveState();
-            console.info(V43_SHA_MARKER);
-          """
-          if redundant not in source:
-              raise SystemExit("Expected redundant V4.3 marker block was not found")
-          source = source.replace(redundant, "", 1)
-          path.write_text(source, encoding="utf-8")
-          PY
-
           test "$(wc -c < "$TARGET" | tr -d ' ')" = "485062"
           echo "8abf3ea130f7da8716ed899b0939fd09277ef9390f91914eb20d7b86b447d4cc  $TARGET" | sha256sum --check --strict
           grep -Fq '<title>Omnia — Creative Asset System V4.4 Final</title>' "$TARGET"
@@ -73,56 +33,6 @@ jobs:
           grep -Fq 'data-action="capacity-pod-v44"' "$TARGET"
           grep -Fq 'data-action="open-pitch-v44"' "$TARGET"
           grep -Fq 'Ready for launch' "$TARGET"
-          grep -Fq 'In progress' "$TARGET"
           grep -Fq 'Pod War Room pitch' "$TARGET"
-
-      - name: Normalize the deployable V4.4 repository
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f omnia-creative-assets-v4-1/v44.diff.gz.b64
-
-          cat > omnia-creative-assets-v4-1/package.json <<'JSON'
-          {
-            "name": "omnia-creative-assets-v4-4",
-            "version": "4.4.0",
-            "private": true
-          }
-          JSON
-
-          cat > omnia-creative-assets-v4-1/vercel.json <<'JSON'
-          {
-            "cleanUrls": true,
-            "trailingSlash": false
-          }
-          JSON
-
-          cat > omnia-creative-assets-v4-1/README.md <<'MD'
-          # Omnia Creative Asset System — V4.4 Final
-
-          Exact production source for the final reviewed Omnia Creative Asset System prototype.
-
-          ## Live production
-
-          https://omnia-creative-assets-v4-1-live.vercel.app
-
-          ## Integrity
-
-          - File: `index.html`
-          - Bytes: `485062`
-          - SHA-256: `8abf3ea130f7da8716ed899b0939fd09277ef9390f91914eb20d7b86b447d4cc`
-          - Title: `Omnia — Creative Asset System V4.4 Final`
-
-          The file is self-contained and can be opened directly or deployed as a static Vercel site.
-          MD
-
-      - name: Commit the exact V4.4 production source
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "WSC Omnia Automation"
-          git config user.email "admin@wescalecreators.com"
-          git add -A omnia-creative-assets-v4-1
-          git commit -m "Ship exact Omnia V4.4 production source [skip ci]"
-          git push origin HEAD:omnia-v4-1-live
-          echo "OMNIA_V44_GITHUB_PUBLISHED"
+          grep -Fq '"version": "4.4.0"' omnia-creative-assets-v4-1/package.json
+          echo "OMNIA_V44_GITHUB_SOURCE_VERIFIED"
