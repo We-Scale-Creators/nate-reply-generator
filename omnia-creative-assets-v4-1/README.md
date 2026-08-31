@@ -1,16 +1,16 @@
-# Omnia Creative Asset System — V4.1 QA
+# Omnia Creative Asset System — V4.2 UX
 
-Production-ready interactive prototype for the We Scale Creators Creative Asset System.
+Exact production source for the interactive Omnia Creative Asset System prototype.
 
-- `index.html` is a self-contained static deployment bundle.
-- It reconstructs the exact approved `Omnia_Creative_Asset_System_V4_1_QA.html` source in-browser from an embedded gzip payload.
-- Original source SHA-256: `9539dfe4cc3dfcab04f9de85740468d349c72b185528293ceacaa80f647c779e`
-- No build process, package manager, or external runtime dependency is required.
+## Live production
 
-## Local preview
+https://omnia-creative-assets-v4-1-live.vercel.app
 
-Open `index.html` in a current browser.
+## Integrity
 
-## Vercel
+- File: `index.html`
+- Bytes: `391978`
+- SHA-256: `9d486e1cc31ed3bfbae33f8cbdfee840223e62f08ebbcc936221d76e4f2b51e0`
+- Title: `Omnia — Creative Asset System V4.2 UX`
 
-Deploy as a static site with the repository root set to this directory.
+The file is self-contained and can be opened directly or deployed as a static Vercel site.
