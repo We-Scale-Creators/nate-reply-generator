@@ -43,7 +43,6 @@ jobs:
 
           path = Path("omnia-creative-assets-v4-1/index.html")
           source = path.read_text(encoding="utf-8")
-
           source = source.replace(
               "<title>Omnia — Creative Asset System V4.2 UX</title>",
               "<title>Omnia — Creative Asset System V4.4 Final</title>",
@@ -54,7 +53,6 @@ jobs:
               "const V44_SHA_MARKER='OMNIA_V44_FINAL_DASHBOARD_QUEUE_PITCH';",
               1,
           )
-
           redundant = """
 
             document.title='Omnia — Creative Asset System V4.4 Final';
@@ -118,52 +116,13 @@ jobs:
           The file is self-contained and can be opened directly or deployed as a static Vercel site.
           MD
 
-          cat > .github/workflows/sync-omnia-v42.yml <<'YAML'
-          name: Verify Omnia V4.4 production source
-
-          on:
-            push:
-              branches:
-                - omnia-v4-1-live
-              paths:
-                - omnia-creative-assets-v4-1/**
-                - .github/workflows/sync-omnia-v42.yml
-            workflow_dispatch:
-
-          permissions:
-            contents: read
-
-          jobs:
-            verify-production-source:
-              runs-on: ubuntu-latest
-              steps:
-                - name: Check out Omnia branch
-                  uses: actions/checkout@v4
-                  with:
-                    ref: omnia-v4-1-live
-
-                - name: Verify exact V4.4 source
-                  shell: bash
-                  run: |
-                    set -euo pipefail
-                    TARGET="omnia-creative-assets-v4-1/index.html"
-                    test "$(wc -c < "$TARGET" | tr -d ' ')" = "485062"
-                    echo "8abf3ea130f7da8716ed899b0939fd09277ef9390f91914eb20d7b86b447d4cc  $TARGET" | sha256sum --check --strict
-                    grep -Fq '<title>Omnia — Creative Asset System V4.4 Final</title>' "$TARGET"
-                    grep -Fq 'OMNIA_V44_FINAL_DASHBOARD_QUEUE_PITCH' "$TARGET"
-                    grep -Fq 'data-action="capacity-pod-v44"' "$TARGET"
-                    grep -Fq 'data-action="open-pitch-v44"' "$TARGET"
-                    grep -Fq '"version": "4.4.0"' omnia-creative-assets-v4-1/package.json
-                    echo "OMNIA_V44_GITHUB_SOURCE_VERIFIED"
-          YAML
-
       - name: Commit the exact V4.4 production source
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "WSC Omnia Automation"
           git config user.email "admin@wescalecreators.com"
-          git add -A omnia-creative-assets-v4-1 .github/workflows/sync-omnia-v42.yml
+          git add -A omnia-creative-assets-v4-1
           git commit -m "Ship exact Omnia V4.4 production source [skip ci]"
           git push origin HEAD:omnia-v4-1-live
           echo "OMNIA_V44_GITHUB_PUBLISHED"
