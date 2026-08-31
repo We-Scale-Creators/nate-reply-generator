@@ -1,4 +1,4 @@
-name: Sync Omnia V4.2 production source
+name: Sync Omnia V4.3 production source
 
 on:
   push:
@@ -21,31 +21,49 @@ jobs:
           ref: omnia-v4-1-live
           fetch-depth: 0
 
-      - name: Fetch and verify exact production source
+      - name: Build and verify exact V4.3 source
         shell: bash
         run: |
           set -euo pipefail
           TARGET="omnia-creative-assets-v4-1/index.html"
-          mkdir -p "$(dirname "$TARGET")"
-          curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
-            https://omnia-creative-assets-v4-1-live.vercel.app/ \
-            --output "$TARGET"
+          PATCH_B64="omnia-creative-assets-v4-1/patch-v43.b64"
+
           test "$(wc -c < "$TARGET" | tr -d ' ')" = "391978"
           echo "9d486e1cc31ed3bfbae33f8cbdfee840223e62f08ebbcc936221d76e4f2b51e0  $TARGET" | sha256sum --check --strict
-          grep -Fq '<title>Omnia — Creative Asset System V4.2 UX</title>' "$TARGET"
-          grep -Fq 'id="v42-ux-workflow"' "$TARGET"
-          grep -Fq 'data-action="submit-design-v42"' "$TARGET"
+
+          base64 --decode "$PATCH_B64" | gunzip > /tmp/v43_patch.js
+          test "$(wc -c < /tmp/v43_patch.js | tr -d ' ')" = "51922"
+          echo "e8796a3734519a440c908f0ae18ff4f3a1ee0d298c8ce46363be26e905a817e4  /tmp/v43_patch.js" | sha256sum --check --strict
+
+          python - <<'PY'
+          from pathlib import Path
+
+          target = Path("omnia-creative-assets-v4-1/index.html")
+          source = target.read_text(encoding="utf-8")
+          patch = Path("/tmp/v43_patch.js").read_text(encoding="utf-8")
+          needle = "  render();\n})();"
+          if source.count(needle) != 1:
+              raise SystemExit(f"Expected one render terminator, found {source.count(needle)}")
+          target.write_text(source.replace(needle, patch + "\n\n" + needle, 1), encoding="utf-8")
+          PY
+
+          test "$(wc -c < "$TARGET" | tr -d ' ')" = "443902"
+          echo "35a3f9dfab9da386b02ce3cd7359b19c3abbcc1a99d5beb5803b6fa4e63a20e1  $TARGET" | sha256sum --check --strict
+          grep -Fq 'OMNIA_V43_COPY_FINALIZE_WORKFLOW' "$TARGET"
+          grep -Fq 'Finalize & Export' "$TARGET"
+          grep -Fq 'Primary headline' "$TARGET"
+          grep -Fq 'Primary body copy' "$TARGET"
+          grep -Fq 'data-action="submit-launch-v43"' "$TARGET"
 
       - name: Normalize the deployable repository
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf omnia-creative-assets-v4-1/payload
-          rm -f omnia-creative-assets-v4-1/build.mjs omnia-creative-assets-v4-1/patch-v42.b64
+          rm -f omnia-creative-assets-v4-1/patch-v43.b64
           cat > omnia-creative-assets-v4-1/package.json <<'JSON'
           {
-            "name": "omnia-creative-assets-v4-2",
-            "version": "4.2.0",
+            "name": "omnia-creative-assets-v4-3",
+            "version": "4.3.0",
             "private": true
           }
           JSON
@@ -56,7 +74,7 @@ jobs:
           }
           JSON
           cat > omnia-creative-assets-v4-1/README.md <<'MD'
-          # Omnia Creative Asset System — V4.2 UX
+          # Omnia Creative Asset System — V4.3
 
           Exact production source for the interactive Omnia Creative Asset System prototype.
 
@@ -64,17 +82,21 @@ jobs:
 
           https://omnia-creative-assets-v4-1-live.vercel.app
 
+          ## V4.3 workflow
+
+          Brief → Design → Copy → Finalize & Export → Launch → Activity
+
           ## Integrity
 
           - File: `index.html`
-          - Bytes: `391978`
-          - SHA-256: `9d486e1cc31ed3bfbae33f8cbdfee840223e62f08ebbcc936221d76e4f2b51e0`
-          - Title: `Omnia — Creative Asset System V4.2 UX`
+          - Bytes: `443902`
+          - SHA-256: `35a3f9dfab9da386b02ce3cd7359b19c3abbcc1a99d5beb5803b6fa4e63a20e1`
+          - Runtime title: `Omnia — Creative Asset System V4.3`
 
           The file is self-contained and can be opened directly or deployed as a static Vercel site.
           MD
 
-      - name: Commit exact V4.2 source
+      - name: Commit exact V4.3 source
         shell: bash
         run: |
           set -euo pipefail
@@ -85,5 +107,5 @@ jobs:
             echo "Repository is already synchronized."
             exit 0
           fi
-          git commit -m "Ship exact Omnia V4.2 production source [skip ci]"
+          git commit -m "Ship exact Omnia V4.3 production source [skip ci]"
           git push origin HEAD:omnia-v4-1-live
