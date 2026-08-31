@@ -1,20 +1,16 @@
-# Omnia Creative Asset System — V4.3
+# Omnia Creative Asset System — V4.4 Final
 
-Exact production source for the interactive Omnia Creative Asset System prototype.
+Exact production source for the final reviewed Omnia Creative Asset System prototype.
 
 ## Live production
 
 https://omnia-creative-assets-v4-1-live.vercel.app
 
-## V4.3 workflow
-
-Brief → Design → Copy → Finalize & Export → Launch → Activity
-
 ## Integrity
 
 - File: `index.html`
-- Bytes: `443902`
-- SHA-256: `35a3f9dfab9da386b02ce3cd7359b19c3abbcc1a99d5beb5803b6fa4e63a20e1`
-- Runtime title: `Omnia — Creative Asset System V4.3`
+- Bytes: `485062`
+- SHA-256: `8abf3ea130f7da8716ed899b0939fd09277ef9390f91914eb20d7b86b447d4cc`
+- Title: `Omnia — Creative Asset System V4.4 Final`
 
 The file is self-contained and can be opened directly or deployed as a static Vercel site.
