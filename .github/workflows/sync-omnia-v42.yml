@@ -25,19 +25,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APP_DIR="omnia-creative-assets-v4-1"
-          TARGET="$APP_DIR/index.html"
-          PATCH_FILE="$APP_DIR/v46.diff.gz.b64"
+          TARGET="omnia-creative-assets-v4-1/index.html"
+          PATCH_B64="omnia-creative-assets-v4-1/v46.diff.gz.b64"
 
           test "$(wc -c < "$TARGET" | tr -d ' ')" = "504956"
           echo "3edb54f55b73f5a6bf803733d9d8aa02c3a3d40715e41ca140dd30ac4c94d7e3  $TARGET" | sha256sum --check --strict
-          test -f "$PATCH_FILE"
+          test "$(wc -c < "$PATCH_B64" | tr -d ' ')" = "11981"
+          echo "b20259a0e4201a7afa140798b4d96be1bcfbbd5f93c0f9ff4fe8d4ba9c7110a5  $PATCH_B64" | sha256sum --check --strict
 
-          base64 --decode "$PATCH_FILE" | gzip --decompress > /tmp/v46.diff
-          (
-            cd "$APP_DIR"
-            patch -p0 < /tmp/v46.diff
-          )
+          base64 --decode "$PATCH_B64" | gzip -dc > /tmp/v46.diff
+          test "$(wc -c < /tmp/v46.diff | tr -d ' ')" = "39016"
+          echo "cf2cc814e3fc4aeee7a46e27aa943a57af82e7abbc486b3411fe776fd7135624  /tmp/v46.diff" | sha256sum --check --strict
+          patch -p0 --batch < /tmp/v46.diff
 
           test "$(wc -c < "$TARGET" | tr -d ' ')" = "542795"
           echo "042bb12e322b522eae519792a689a5067e161a7d4cc5567f6683653fb7ae0651  $TARGET" | sha256sum --check --strict
@@ -101,9 +100,6 @@ jobs:
           git config user.name "WSC Omnia Automation"
           git config user.email "admin@wescalecreators.com"
           git add -A omnia-creative-assets-v4-1
-          if git diff --cached --quiet; then
-            echo "Repository is already synchronized."
-            exit 0
-          fi
           git commit -m "Ship exact Omnia V4.6 sticky rails source [skip ci]"
           git push origin HEAD:omnia-v4-1-live
+          echo "OMNIA_V46_GITHUB_PUBLISHED"
