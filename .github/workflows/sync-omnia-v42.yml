@@ -1,38 +1,99 @@
-name: Verify Omnia V4.4 production source
+name: Build and publish Omnia V4.5 production source
 
 on:
   push:
     branches:
       - omnia-v4-1-live
     paths:
-      - omnia-creative-assets-v4-1/**
       - .github/workflows/sync-omnia-v42.yml
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  verify-production-source:
+  build-publish-and-verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Omnia branch
+      - name: Check out Omnia production branch
         uses: actions/checkout@v4
         with:
           ref: omnia-v4-1-live
+          fetch-depth: 0
 
-      - name: Verify exact V4.4 source
+      - name: Apply and verify the V4.5 partner overview update
         shell: bash
         run: |
           set -euo pipefail
-          TARGET="omnia-creative-assets-v4-1/index.html"
+          DIR="omnia-creative-assets-v4-1"
+          TARGET="$DIR/index.html"
+          PATCH="$DIR/v45.diff.gz.b64"
+
           test "$(wc -c < "$TARGET" | tr -d ' ')" = "485062"
           echo "8abf3ea130f7da8716ed899b0939fd09277ef9390f91914eb20d7b86b447d4cc  $TARGET" | sha256sum --check --strict
-          grep -Fq '<title>Omnia — Creative Asset System V4.4 Final</title>' "$TARGET"
-          grep -Fq 'OMNIA_V44_FINAL_DASHBOARD_QUEUE_PITCH' "$TARGET"
-          grep -Fq 'data-action="capacity-pod-v44"' "$TARGET"
-          grep -Fq 'data-action="open-pitch-v44"' "$TARGET"
-          grep -Fq 'Ready for launch' "$TARGET"
-          grep -Fq 'Pod War Room pitch' "$TARGET"
-          grep -Fq '"version": "4.4.0"' omnia-creative-assets-v4-1/package.json
-          echo "OMNIA_V44_GITHUB_SOURCE_VERIFIED"
+
+          base64 --decode "$PATCH" | gzip --decompress > /tmp/v45.diff
+          (cd "$DIR" && patch -p0 --batch < /tmp/v45.diff)
+
+          test "$(wc -c < "$TARGET" | tr -d ' ')" = "504956"
+          echo "3edb54f55b73f5a6bf803733d9d8aa02c3a3d40715e41ca140dd30ac4c94d7e3  $TARGET" | sha256sum --check --strict
+          grep -Fq '<title>Omnia — Creative Asset System V4.5 Partner Overview</title>' "$TARGET"
+          grep -Fq 'OMNIA_V45_PARTNER_OVERVIEW' "$TARGET"
+          grep -Fq 'Active partner creative overview' "$TARGET"
+          grep -Fq 'data-client="SKUP"' "$TARGET"
+          grep -Fq 'data-client="LG"' "$TARGET"
+          grep -Fq 'data-client="TC"' "$TARGET"
+          ! grep -Fq '<div class="topbar-actions">' "$TARGET"
+          echo "OMNIA_V45_PATCH_VERIFIED"
+
+      - name: Normalize the deployable V4.5 repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          DIR="omnia-creative-assets-v4-1"
+          rm -f "$DIR/v45.diff.gz.b64"
+          cat > "$DIR/package.json" <<'JSON'
+          {
+            "name": "omnia-creative-assets-v4-5-live",
+            "version": "4.5.0",
+            "private": true
+          }
+          JSON
+          cat > "$DIR/vercel.json" <<'JSON'
+          {
+            "cleanUrls": true,
+            "trailingSlash": false
+          }
+          JSON
+          cat > "$DIR/README.md" <<'MD'
+          # Omnia Creative Asset System — V4.5 Partner Overview
+
+          Exact production source for the interactive We Scale Creators creative operating-system prototype.
+
+          ## Live production
+
+          https://omnia-creative-assets-v4-1-live.vercel.app
+
+          ## Integrity
+
+          - File: `index.html`
+          - Bytes: `504956`
+          - SHA-256: `3edb54f55b73f5a6bf803733d9d8aa02c3a3d40715e41ca140dd30ac4c94d7e3`
+          - Title: `Omnia — Creative Asset System V4.5 Partner Overview`
+
+          The dashboard is partner-first, preserves all existing workflow stages, and opens each active batch directly at its current stage.
+          MD
+
+      - name: Commit the exact V4.5 production source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "WSC Omnia Automation"
+          git config user.email "admin@wescalecreators.com"
+          git add -A omnia-creative-assets-v4-1
+          if git diff --cached --quiet; then
+            echo "Repository is already synchronized."
+            exit 0
+          fi
+          git commit -m "Ship exact Omnia V4.5 partner overview source [skip ci]"
+          git push origin HEAD:omnia-v4-1-live
