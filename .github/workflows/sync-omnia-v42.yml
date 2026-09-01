@@ -40,9 +40,10 @@ jobs:
           grep -Fq '<title>Omnia — Creative Asset System V4.5 Partner Overview</title>' "$TARGET"
           grep -Fq 'OMNIA_V45_PARTNER_OVERVIEW' "$TARGET"
           grep -Fq 'Active partner creative overview' "$TARGET"
-          grep -Fq 'data-client="SKUP"' "$TARGET"
-          grep -Fq 'data-client="LG"' "$TARGET"
-          grep -Fq 'data-client="TC"' "$TARGET"
+          grep -Fq "SKUP: { name:'Skup'" "$TARGET"
+          grep -Fq "LG: { name:'Laundromat Girl'" "$TARGET"
+          grep -Fq "TC: { name:'Traders Coaching'" "$TARGET"
+          grep -Fq "const V45_PARTNER_ORDER=['BK','CP','DP','SKUP','LG','NBD','TC'];" "$TARGET"
           ! grep -Fq '<div class="topbar-actions">' "$TARGET"
           echo "OMNIA_V45_PATCH_VERIFIED"
 
