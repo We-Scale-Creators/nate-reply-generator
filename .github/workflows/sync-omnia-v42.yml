@@ -1,40 +1,109 @@
-name: Verify Omnia V4.5 production source
+name: Build and publish Omnia V4.6 production source
 
 on:
   push:
     branches:
       - omnia-v4-1-live
     paths:
-      - omnia-creative-assets-v4-1/**
       - .github/workflows/sync-omnia-v42.yml
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  verify-production-source:
+  build-publish-and-verify:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Omnia production branch
         uses: actions/checkout@v4
         with:
           ref: omnia-v4-1-live
+          fetch-depth: 0
 
-      - name: Verify exact V4.5 partner overview source
+      - name: Apply and verify the V4.6 sticky-rails update
         shell: bash
         run: |
           set -euo pipefail
-          TARGET="omnia-creative-assets-v4-1/index.html"
+          APP_DIR="omnia-creative-assets-v4-1"
+          TARGET="$APP_DIR/index.html"
+          PATCH_FILE="$APP_DIR/v46.diff.gz.b64"
+
           test "$(wc -c < "$TARGET" | tr -d ' ')" = "504956"
           echo "3edb54f55b73f5a6bf803733d9d8aa02c3a3d40715e41ca140dd30ac4c94d7e3  $TARGET" | sha256sum --check --strict
-          grep -Fq '<title>Omnia — Creative Asset System V4.5 Partner Overview</title>' "$TARGET"
-          grep -Fq 'OMNIA_V45_PARTNER_OVERVIEW' "$TARGET"
-          grep -Fq 'Active partner creative overview' "$TARGET"
-          grep -Fq "const V45_PARTNER_ORDER=['BK','CP','DP','SKUP','LG','NBD','TC'];" "$TARGET"
-          grep -Fq "SKUP: { name:'Skup'" "$TARGET"
-          grep -Fq "LG: { name:'Laundromat Girl'" "$TARGET"
-          grep -Fq "TC: { name:'Traders Coaching'" "$TARGET"
-          ! grep -Fq '<div class="topbar-actions">' "$TARGET"
-          grep -Fq '"version": "4.5.0"' omnia-creative-assets-v4-1/package.json
-          echo "OMNIA_V45_GITHUB_SOURCE_VERIFIED"
+          test -f "$PATCH_FILE"
+
+          base64 --decode "$PATCH_FILE" | gzip --decompress > /tmp/v46.diff
+          (
+            cd "$APP_DIR"
+            patch -p0 < /tmp/v46.diff
+          )
+
+          test "$(wc -c < "$TARGET" | tr -d ' ')" = "542799"
+          echo "7ab83e181494e0d65a85d3476c6abfe94f26e248822c9d0cf71f7a710cd48681  $TARGET" | sha256sum --check --strict
+          grep -Fq '<title>Omnia — Creative Asset System V4.6 Sticky Rails</title>' "$TARGET"
+          grep -Fq 'OMNIA_V46_STICKY_RAILS_CONCEPT_LAUNCH' "$TARGET"
+          grep -Fq 'v46-dashboard-sidebar' "$TARGET"
+          grep -Fq 'v46-stage-sidebar' "$TARGET"
+          grep -Fq 'v46-launch-concept' "$TARGET"
+          grep -Fq 'Media Buyer launch workspace' "$TARGET"
+
+      - name: Normalize the deployable V4.6 repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_DIR="omnia-creative-assets-v4-1"
+          rm -f "$APP_DIR/v46.diff.gz.b64"
+
+          cat > "$APP_DIR/package.json" <<'JSON'
+          {
+            "name": "omnia-creative-assets-v4-6-live",
+            "version": "4.6.0",
+            "private": true
+          }
+          JSON
+
+          cat > "$APP_DIR/vercel.json" <<'JSON'
+          {
+            "cleanUrls": true,
+            "trailingSlash": false
+          }
+          JSON
+
+          cat > "$APP_DIR/README.md" <<'MD'
+          # Omnia Creative Asset System — V4.6 Sticky Rails
+
+          Exact production source for the interactive We Scale Creators creative operating system prototype.
+
+          ## Live production
+
+          https://omnia-creative-assets-v4-1-live.vercel.app
+
+          ## V4.6 changes
+
+          - Creative Capacity and Creative Launch Activity now begin at the top of the dashboard partner overview and remain pinned in a scrolling operating rail.
+          - Creative Assets and Media Buyer Queue use standard readable software typography.
+          - Every batch stage has a pinned stage-action and submission rail.
+          - Launch assets are grouped by finalized concept with independently collapsible variation lists.
+
+          ## Integrity
+
+          - File: `index.html`
+          - Bytes: `542799`
+          - SHA-256: `7ab83e181494e0d65a85d3476c6abfe94f26e248822c9d0cf71f7a710cd48681`
+          - Title: `Omnia — Creative Asset System V4.6 Sticky Rails`
+          MD
+
+      - name: Commit the exact V4.6 production source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "WSC Omnia Automation"
+          git config user.email "admin@wescalecreators.com"
+          git add -A omnia-creative-assets-v4-1
+          if git diff --cached --quiet; then
+            echo "Repository is already synchronized."
+            exit 0
+          fi
+          git commit -m "Ship exact Omnia V4.6 sticky rails source [skip ci]"
+          git push origin HEAD:omnia-v4-1-live
