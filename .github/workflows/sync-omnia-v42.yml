@@ -39,8 +39,8 @@ jobs:
             patch -p0 < /tmp/v46.diff
           )
 
-          test "$(wc -c < "$TARGET" | tr -d ' ')" = "542799"
-          echo "7ab83e181494e0d65a85d3476c6abfe94f26e248822c9d0cf71f7a710cd48681  $TARGET" | sha256sum --check --strict
+          test "$(wc -c < "$TARGET" | tr -d ' ')" = "542795"
+          echo "042bb12e322b522eae519792a689a5067e161a7d4cc5567f6683653fb7ae0651  $TARGET" | sha256sum --check --strict
           grep -Fq '<title>Omnia — Creative Asset System V4.6 Sticky Rails</title>' "$TARGET"
           grep -Fq 'OMNIA_V46_STICKY_RAILS_CONCEPT_LAUNCH' "$TARGET"
           grep -Fq 'v46-dashboard-sidebar' "$TARGET"
@@ -89,8 +89,8 @@ jobs:
           ## Integrity
 
           - File: `index.html`
-          - Bytes: `542799`
-          - SHA-256: `7ab83e181494e0d65a85d3476c6abfe94f26e248822c9d0cf71f7a710cd48681`
+          - Bytes: `542795`
+          - SHA-256: `042bb12e322b522eae519792a689a5067e161a7d4cc5567f6683653fb7ae0651`
           - Title: `Omnia — Creative Asset System V4.6 Sticky Rails`
           MD
 
