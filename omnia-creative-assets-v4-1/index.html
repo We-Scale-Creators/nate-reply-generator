@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="color-scheme" content="dark" />
-  <title>Omnia — Creative Asset System V4.4 Final</title>
+  <title>Omnia — Creative Asset System V4.5 Partner Overview</title>
   <style>
 :root {
   --bg: #080612;
@@ -1510,6 +1510,80 @@ body.sidebar-collapsed .sidebar-user .icon-btn { display:none; }
 .v44-queue-tags{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 
 </style>
+
+  <style id="v45-partner-overview-styles">
+    .topbar { justify-content: flex-start; }
+    .topbar .global-search-wrap { width: min(820px, 76vw); }
+
+    .client-logo.skup { background: linear-gradient(145deg, #26386d, #5968e8); }
+    .client-logo.lg { background: linear-gradient(145deg, #342e2d, #8b6f5c); }
+    .client-logo.tc { background: linear-gradient(145deg, #471b1d, #d05a49); }
+
+    .v45-dashboard .page-heading { margin-bottom: 18px; }
+    .v45-partner-section { margin-top: 16px; }
+    .v45-section-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:12px; }
+    .v45-section-heading h2 { margin:0; color:#f4effa; font-size:16px; letter-spacing:-.02em; }
+    .v45-section-heading p { margin:5px 0 0; color:#82788e; font-size:9px; line-height:1.5; }
+    .v45-section-count { color:#9b90a7; font-size:8px; text-transform:uppercase; letter-spacing:.1em; white-space:nowrap; }
+
+    .v45-partner-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:13px; align-items:stretch; }
+    .v45-partner-card { position:relative; min-width:0; min-height:252px; padding:16px; overflow:hidden; border:1px solid rgba(154,126,196,.16); border-radius:15px; background:linear-gradient(145deg,rgba(30,24,48,.92),rgba(17,13,29,.96)); box-shadow:0 16px 40px rgba(0,0,0,.18); display:flex; flex-direction:column; }
+    .v45-partner-card::before { content:""; position:absolute; inset:0; pointer-events:none; background:radial-gradient(circle at 82% 8%,var(--partner-glow,rgba(168,85,247,.13)),transparent 37%); opacity:.9; }
+    .v45-partner-card > * { position:relative; z-index:1; }
+    .v45-partner-card[data-pod="Pod 1"] { --partner-glow:rgba(79,140,255,.16); }
+    .v45-partner-card[data-pod="Pod 2"] { --partner-glow:rgba(168,85,247,.16); }
+    .v45-partner-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .v45-partner-identity { display:flex; gap:11px; align-items:center; min-width:0; }
+    .v45-partner-identity .client-logo { width:38px; height:38px; border-radius:10px; }
+    .v45-partner-identity-copy { min-width:0; display:flex; flex-direction:column; gap:3px; }
+    .v45-partner-identity-copy strong { color:#f4eff9; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .v45-partner-identity-copy span { color:#7d7389; font-size:8px; }
+    .v45-active-pill { flex:none; padding:6px 9px; border:1px solid rgba(32,214,123,.35); border-radius:7px; color:#41e793; background:rgba(32,214,123,.08); font-size:7px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; }
+
+    .v45-partner-summary { margin:16px 0 13px; padding-bottom:13px; border-bottom:1px solid rgba(154,126,196,.10); }
+    .v45-partner-summary-top { display:flex; align-items:end; justify-content:space-between; gap:10px; }
+    .v45-partner-summary-top strong { color:#f4eff9; font-size:22px; line-height:1; letter-spacing:-.04em; }
+    .v45-partner-summary-top strong small { color:#6f657a; font-size:10px; font-weight:650; letter-spacing:0; }
+    .v45-partner-summary-top span { color:#7f758a; font-size:8px; text-align:right; }
+    .v45-partner-progress { height:5px; margin-top:10px; border-radius:999px; background:rgba(255,255,255,.055); overflow:hidden; }
+    .v45-partner-progress span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#7c4dff,#d64bee); box-shadow:0 0 16px rgba(168,85,247,.35); }
+
+    .v45-batch-label { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; color:#766d82; font-size:7px; font-weight:760; letter-spacing:.1em; text-transform:uppercase; }
+    .v45-batch-label span:last-child { letter-spacing:0; text-transform:none; font-weight:600; color:#635b6e; }
+    .v45-batch-list { display:flex; flex-direction:column; gap:7px; margin-top:auto; }
+    .v45-batch-link { width:100%; min-width:0; border:1px solid rgba(154,126,196,.13); border-radius:10px; background:rgba(255,255,255,.022); color:inherit; padding:10px; display:grid; grid-template-columns:minmax(0,1fr) auto 20px; gap:9px; align-items:center; cursor:pointer; text-align:left; transition:background .14s ease,border-color .14s ease,transform .14s ease; }
+    .v45-batch-link:hover { background:rgba(168,85,247,.075); border-color:rgba(168,85,247,.34); transform:translateY(-1px); }
+    .v45-batch-copy { min-width:0; display:flex; flex-direction:column; gap:3px; }
+    .v45-batch-copy strong { color:#dfd8e7; font-size:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .v45-batch-copy span { color:#756c80; font-size:7.5px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .v45-stage-badge { flex:none; display:inline-flex; align-items:center; gap:5px; padding:5px 7px; border-radius:999px; border:1px solid rgba(154,126,196,.18); background:rgba(255,255,255,.03); color:#b6acbf; font-size:7px; font-weight:760; white-space:nowrap; }
+    .v45-stage-badge.brief { color:#c891ff; border-color:rgba(192,132,252,.28); background:rgba(168,85,247,.08); }
+    .v45-stage-badge.design { color:#6fa5ff; border-color:rgba(79,140,255,.28); background:rgba(79,140,255,.08); }
+    .v45-stage-badge.copy { color:#f087f4; border-color:rgba(217,70,239,.28); background:rgba(217,70,239,.08); }
+    .v45-stage-badge.finalize { color:#ffbd63; border-color:rgba(255,176,32,.28); background:rgba(255,176,32,.08); }
+    .v45-stage-badge.launch { color:#42e5d0; border-color:rgba(34,211,238,.28); background:rgba(34,211,238,.08); }
+    .v45-stage-badge svg { width:10px; height:10px; }
+    .v45-batch-arrow { color:#82768f; display:grid; place-items:center; }
+    .v45-batch-arrow svg { width:12px; height:12px; }
+    .v45-no-batches { min-height:54px; border:1px dashed rgba(154,126,196,.13); border-radius:10px; display:flex; align-items:center; justify-content:center; color:#6f657a; font-size:8px; }
+    .v45-empty-partners { grid-column:1/-1; min-height:190px; }
+
+    .v45-dashboard-lower { margin-top:16px; }
+
+    @media (max-width: 1220px) {
+      .v45-partner-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width: 920px) {
+      .topbar .global-search-wrap { width:auto; flex:1; }
+      .v45-partner-grid { grid-template-columns:1fr; }
+      .v45-partner-card { min-height:0; }
+    }
+    @media (max-width: 620px) {
+      .v45-batch-link { grid-template-columns:minmax(0,1fr) 20px; }
+      .v45-stage-badge { grid-column:1/-1; grid-row:2; width:max-content; }
+      .v45-batch-arrow { grid-column:2; grid-row:1; }
+    }
+  </style>
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true">
@@ -1648,11 +1722,7 @@ body.sidebar-collapsed .sidebar-user .icon-btn { display:none; }
           <kbd>⌘ K</kbd>
           <div class="search-results" id="searchResults"></div>
         </div>
-        <div class="topbar-actions">
-          <div class="environment-pill"><span></span> V3 Prototype</div>
-          <button class="btn btn-primary" id="createBriefBtn"><svg><use href="#i-plus"/></svg>Create brief</button>
-          <button class="icon-btn topbar-more"><svg><use href="#i-more"/></svg></button>
-        </div>
+
       </header>
 
       <div id="appView" class="app-view" aria-live="polite"></div>
@@ -2978,7 +3048,7 @@ body.sidebar-collapsed .sidebar-user .icon-btn { display:none; }
     if(event.key==='Escape'){closeModal();closeDrawer();searchResults.classList.remove('open');}
   });
 
-  document.getElementById('createBriefBtn').addEventListener('click',()=>createBriefModal());
+  document.getElementById('createBriefBtn')?.addEventListener('click',()=>createBriefModal());
   document.getElementById('sidebarCollapse').addEventListener('click',()=>document.body.classList.toggle('sidebar-collapsed'));
   document.getElementById('creativeHubToggle').addEventListener('click',()=>{document.getElementById('creativeSubnav').classList.toggle('hidden');});
   document.getElementById('userMenuBtn').addEventListener('click',event=>{event.stopPropagation();document.getElementById('userMenu').classList.toggle('open');});
@@ -4057,11 +4127,147 @@ body.sidebar-collapsed .sidebar-user .icon-btn { display:none; }
     if(event.target.id==='v44PerformancePitch'){ui.performanceFilters.pitch=event.target.value;render();}
   });
 
-  document.title='Omnia — Creative Asset System V4.4 Final';
-  if(v4Env)v4Env.innerHTML='<span></span>V4.4 Final';
+  /* ================================================================
+     V4.5 — Partner-first Creative Command dashboard
+     ================================================================ */
+  const V45_SHA_MARKER='OMNIA_V45_PARTNER_OVERVIEW';
+
+  Object.assign(CLIENTS, {
+    SKUP: { name:'Skup', className:'skup', short:'SK', pod:'Pod 2', targetCPA:135, segment:'B2B' },
+    LG: { name:'Laundromat Girl', className:'lg', short:'LG', pod:'Pod 2', targetCPA:110, segment:'B2B' },
+    TC: { name:'Traders Coaching', className:'tc', short:'TC', pod:'Pod 1', targetCPA:125, segment:'B2C' }
+  });
+
+  const V45_PARTNER_ORDER=['BK','CP','DP','SKUP','LG','NBD','TC'];
+
+  function v45BaseBrief(spec){
+    return Object.assign({
+      platform:'FB',medium:'Image',type:'C',targetWeek:'Sep 1 – Sep 7',dueDate:'Sep 7',
+      asanaUrl:'https://app.asana.com/0/creative-demo/partner-batch',driveUrl:'',figmaUrl:'',
+      owner:'Adrian Campos',briefer:'Tyler Wrightsman',designer:'Austin Noble',copywriter:'Brad Wages',mediaBuyer:'Ilias',
+      stageIndex:0,status:'Awaiting brief',createdAt:'Sep 1, 2026',lastUpdated:'Sep 1, 2026 · 8:30 AM',points:0,
+      overview:'',loomUrl:'',directives:[],activity:[],concepts:[],briefSubmitted:false,v42DesignSubmitted:false,
+      v4Closed:false,v4ClosedAt:'',v4ManualStatus:'',v43SubmittedForLaunch:false,v43SubmittedAt:'',v43FinalsFolderUrl:''
+    },spec);
+  }
+
+  function v45Asset(id,variation,preview='placeholder',ready=false){
+    return {id,variation,status:ready?'Ready':'Design placeholder',workflowStatus:ready?'Delivered':'Designing',launchStatus:'Not ready',v4Disposition:'production',platformAdId:'',onImageCopy:'',deliveredBy:ready?'Austin Noble':'',deliveredAt:ready?'Aug 30, 2026 · 4:10 PM':'',launchedAt:'',spend:0,revenue:0,cpa:0,roas:0,verdict:'Pending',lastVerdict:'',preview,ratio:'1:1',history:[],assetRole:variation===1?'Primary concept':'Variation',fileName:ready?`${id}_image_final.png`:''};
+  }
+
+  if(!briefById('BR-SKUP-0828')){
+    state.briefs.push(v45BaseBrief({
+      id:'BR-SKUP-0828',slug:'SKUP_VSL_0828',client:'SKUP',funnel:'VSL',targetWeek:'Aug 28 – Sep 3',dueDate:'Sep 3',designer:'Carson Harrington',mediaBuyer:'Ilias',
+      stageIndex:2,status:'Design in progress',briefSubmitted:true,overview:'Reframe the apparel offer around credible proof, established operators, and the long-term brand-building opportunity.',
+      activity:[{time:'Yesterday',day:'Aug 31',type:'brief',title:'Brief submitted to design',body:'The approved VSL concept is now with Carson for visual execution.'}],
+      concepts:[{id:'C-4590',name:'The Brand-Building Reset',status:'In design',pitch:{id:'#471',author:'Tyler',status:'In Production',source:'Pod Pitch'},expectedVariations:2,direction:'Replace instant-money framing with a credible operator-first visual system.',literalCopy:'',referenceType:'skup',parentAssetId:'',v4DesignApproved:false,v4CopyFinal:false,copy:{primary:'',headline:'',description:''},assets:[v45Asset('S4K8UP',1)]}]
+    }));
+  }
+
+  if(!briefById('BR-LG-0829')){
+    state.briefs.push(v45BaseBrief({
+      id:'BR-LG-0829',slug:'LG_LTF_0829',client:'LG',funnel:'Low Ticket',targetWeek:'Aug 29 – Sep 4',dueDate:'Sep 4',designer:'Kumar',copywriter:'Brad Wages',mediaBuyer:'Austin West',
+      stageIndex:4,status:'Copy in progress',briefSubmitted:true,v42DesignSubmitted:true,overview:'Position wash-dry-fold as a practical service business for capable women who want an additional income stream.',
+      activity:[{time:'9:18 AM',day:'Today',type:'design',title:'Design submitted for copy',body:'Three final visual directions are ready for headline and body-copy pairing.'}],
+      concepts:[{id:'C-4594',name:'Boss Woman Business',status:'Concept Approved',pitch:{id:'#474',author:'Tyler',status:'In Production',source:'Pod Pitch'},expectedVariations:2,direction:'Use confident, investment-minded imagery rather than broke-single-mom framing.',literalCopy:'',referenceType:'lg',parentAssetId:'',v4DesignApproved:true,v4CopyFinal:false,copy:{primary:'',headline:'',description:''},assets:[v45Asset('L6G2PW',1,'cp-1',true),v45Asset('L8D4RY',2,'cp-2',true),v45Asset('L9M5TZ',3,'cp-3',true)]}]
+    }));
+  }
+
+  if(!briefById('BR-TC-0901')){
+    state.briefs.push(v45BaseBrief({
+      id:'BR-TC-0901',slug:'TC_LTF_0901',client:'TC',funnel:'Low Ticket',targetWeek:'Sep 1 – Sep 7',dueDate:'Sep 7',designer:'Kumar',copywriter:'Brad Wages',mediaBuyer:'Ilias',
+      stageIndex:0,status:'Awaiting brief',briefSubmitted:false,overview:'',activity:[{time:'8:30 AM',day:'Today',type:'create',title:'Creative asset created',body:'The launch batch is waiting for Tyler to submit the creative brief.'}],concepts:[]
+    }));
+  }
+
+  v43NormalizeState();
+  state.briefs.forEach(brief=>{
+    const status=v4BatchStatus(brief);
+    if(!['Live','Cancelled'].includes(status)) brief.v4Closed=false;
+  });
+  saveState();
+
+  function v45OpenBatches(code){
+    return state.briefs.filter(brief=>brief.client===code&&!['Live','Cancelled'].includes(v4BatchStatus(brief)));
+  }
+
+  function v45PartnerMatches(code){
+    const f=ui.dashboardFilters,c=clientMeta(code),batches=v45OpenBatches(code);
+    if(f.pod!=='all'&&c.pod!==f.pod)return false;
+    if(f.client!=='all'&&code!==f.client)return false;
+    if(f.person!=='all'&&!batches.some(b=>briefPeopleV3(b).includes(f.person)))return false;
+    if(f.status!=='all'&&!batches.some(b=>v4BatchStatus(b)===f.status))return false;
+    return true;
+  }
+
+  function v45StageMeta(brief){
+    const info=v44StageInfo(brief);
+    const icons={brief:'briefcase',design:'image',copy:'copy',finalize:'download',launch:'rocket'};
+    return {...info,icon:icons[info.stageKey]||'arrow'};
+  }
+
+  function v45PartnerCard(code){
+    const c=clientMeta(code),batches=v45OpenBatches(code).sort((a,b)=>{
+      const order={Briefing:0,Design:1,Copy:2,'Finalize & Export':3,'Launch Ready':4,Partial:5,Backlog:6,Blocked:7};
+      return (order[v4BatchStatus(a)]??99)-(order[v4BatchStatus(b)]??99);
+    });
+    const requested=batches.reduce((sum,b)=>sum+requestedCountV3(b),0);
+    const built=batches.reduce((sum,b)=>sum+v4BatchAssets(b).length,0);
+    const pct=requested?Math.min(100,Math.round((built/requested)*100)):0;
+    const segment=c.segment||((code==='CP'||code==='NBD')?'B2C':'B2B');
+    return `<article class="v45-partner-card" data-client="${esc(code)}" data-pod="${esc(c.pod)}">
+      <div class="v45-partner-head">
+        <div class="v45-partner-identity">${clientLogo(code)}<div class="v45-partner-identity-copy"><strong>${esc(c.name)}</strong><span>${esc(c.pod)} · ${esc(segment)}</span></div></div>
+        <span class="v45-active-pill">Active</span>
+      </div>
+      <div class="v45-partner-summary">
+        <div class="v45-partner-summary-top"><strong>${batches.length}<small> open batch${batches.length===1?'':'es'}</small></strong><span>${requested?`${built} of ${requested} requested assets built`:'No asset output requested yet'}</span></div>
+        <div class="v45-partner-progress"><span style="width:${pct}%"></span></div>
+      </div>
+      <div class="v45-batch-label"><span>Current creative work</span><span>Opens exact stage</span></div>
+      <div class="v45-batch-list">
+        ${batches.length?batches.map(brief=>{const info=v45StageMeta(brief);return `<button class="v45-batch-link" data-action="open-stage-v4" data-brief-id="${brief.id}" data-stage="${info.stageKey}"><span class="v45-batch-copy"><strong>${esc(brief.slug)}</strong><span>${esc(brief.funnel)} · ${esc(brief.medium)} · ${esc(info.owner)}</span></span><span class="v45-stage-badge ${info.stageKey}">${icon(info.icon)}${esc(info.label)}</span><span class="v45-batch-arrow">${icon('arrow')}</span></button>`;}).join(''):'<div class="v45-no-batches">No open creative batches</div>'}
+      </div>
+    </article>`;
+  }
+
+  v4DashboardFilters=function(){
+    const f=ui.dashboardFilters;
+    const statuses=['Briefing','Design','Copy','Finalize & Export','Launch Ready','Backlog','Partial','Blocked'];
+    return `<div class="v3-filter-strip"><span class="filter-label">Filter partners</span><select class="select" id="v3DashboardPod"><option value="all">All pods</option><option value="Pod 1" ${f.pod==='Pod 1'?'selected':''}>Pod 1</option><option value="Pod 2" ${f.pod==='Pod 2'?'selected':''}>Pod 2</option></select><select class="select" id="v3DashboardClient"><option value="all">All partners</option>${V45_PARTNER_ORDER.map(code=>`<option value="${code}" ${f.client===code?'selected':''}>${esc(clientMeta(code).name)}</option>`).join('')}</select><select class="select" id="v3DashboardPerson"><option value="all">All team members</option>${allPeopleV3().map(p=>`<option value="${esc(p)}" ${f.person===p?'selected':''}>${esc(p)}</option>`).join('')}</select><select class="select" id="v4DashboardStatus"><option value="all">All current stages</option>${statuses.map(s=>`<option value="${s}" ${f.status===s?'selected':''}>${s}</option>`).join('')}</select><div class="v3-filter-spacer"></div>${(f.pod!=='all'||f.client!=='all'||f.person!=='all'||f.status!=='all')?`<button class="btn btn-ghost btn-sm" data-action="reset-dashboard-filters-v4">${icon('x')}Clear filters</button>`:''}</div>`;
+  };
+
+  renderDashboard=function(){
+    const partnerCodes=V45_PARTNER_ORDER.filter(v45PartnerMatches);
+    const filteredBriefs=partnerCodes.flatMap(code=>v45OpenBatches(code));
+    const rows=filteredBriefs.flatMap(v4BatchAssets);
+    const launchActivity=rows.filter(({asset,concept})=>v4Disposition(asset,concept)==='live').sort((a,b)=>launchTimestamp(b.asset.launchedAt)-launchTimestamp(a.asset.launchedAt)).slice(0,6);
+    const winners=rows.filter(({asset})=>asset.verdict==='Scale').sort((a,b)=>b.asset.spend-a.asset.spend).slice(0,3);
+    const launched=rows.filter(({asset,concept})=>v4Disposition(asset,concept)==='live').length;
+    const awaiting=rows.filter(({asset,concept})=>['ready','backlog'].includes(v4Disposition(asset,concept))).length;
+    return `<section class="page dashboard-page v44-dashboard v45-dashboard">
+      <div class="page-heading"><div><div class="eyebrow">CREATIVE OPERATING SYSTEM</div><h1>Creative Asset System</h1><p class="page-subtitle">Open any active partner, see every current creative batch, and jump directly into the stage that requires action.</p></div><div class="heading-actions"><button class="btn btn-secondary" data-action="run-sync">${icon('sync')}Sync launch data</button><button class="btn btn-primary" data-action="create-brief">${icon('plus')}Create creative asset</button></div></div>
+      ${v4DashboardFilters()}
+      <section class="v45-partner-section">
+        <div class="v45-section-heading"><div><h2>Active partner creative overview</h2><p>Each partner card contains its current open ad batches. Every batch opens directly to Brief, Design, Copy, Finalize & Export, or Launch.</p></div><span class="v45-section-count">${partnerCodes.length} partner${partnerCodes.length===1?'':'s'} in view</span></div>
+        <div class="v45-partner-grid">${partnerCodes.map(v45PartnerCard).join('')||`<div class="glass-card v45-empty-partners">${emptyState('users','No active partners match','Clear one or more partner filters.')}</div>`}</div>
+      </section>
+      <div class="v3-dashboard-grid v44-dashboard-grid v45-dashboard-lower">
+        <div class="v3-dashboard-stack">
+          <div class="glass-card"><div class="card-header"><div><h2>Recent Scale winners</h2><p class="page-subtitle">The newest high-performing concepts remain one click away for a refresh.</p></div><button class="btn btn-ghost btn-sm" data-navigate="winners">Open library ${icon('arrow')}</button></div><div class="v3-reward-strip">${winners.map(({asset,concept,brief})=>`<button class="v3-reward-card" data-open-asset="${asset.id}"><span class="badge badge-green v3-reward-badge">Scale</span><div class="v3-reward-preview">${previewHTML(asset.preview,asset.onImageCopy)}</div><div class="v3-reward-copy"><strong>${esc(concept.name)}</strong><span>${esc(clientMeta(brief.client).name)} · ${asset.roas.toFixed(2)}x ROAS · ${money(asset.revenue,true)}</span></div></button>`).join('')||emptyState('trophy','No Scale winners match','Change the partner filters.')}</div></div>
+        </div>
+        <aside class="v3-dashboard-stack">
+          ${v44CapacityCard()}
+          <div class="glass-card"><div class="card-header"><div><h3>Creative launch activity</h3><p class="page-subtitle">Only creatives that have actually gone live.</p></div><span class="badge badge-blue">${launched} launched</span></div><div class="launch-activity-summary"><div class="launch-activity-stat"><span>Latest launches</span><strong>${launchActivity.length}</strong></div><div class="launch-activity-stat"><span>Live in view</span><strong>${launched}</strong></div><div class="launch-activity-stat"><span>Ready / backlog</span><strong>${awaiting}</strong></div></div><div class="card-body activity-list">${launchActivity.length?launchActivity.map(({asset,concept,brief})=>`<button class="activity-item" data-open-asset="${asset.id}" style="width:100%;border-top:0;border-left:0;border-right:0;background:transparent;color:inherit;text-align:left;cursor:pointer"><div class="activity-bullet">${icon('rocket')}</div><div class="activity-copy"><strong>${esc(asset.id)} launched</strong><span>${esc(clientMeta(brief.client).name)} · ${esc(concept.name)} · ${versionInfoV3(concept,asset).label}</span></div><div class="activity-time">${esc(asset.launchedAt||'Matched')}</div></button>`).join(''):'<div class="launch-activity-empty">No creatives have launched in this filtered view.</div>'}</div></div>
+        </aside>
+      </div>
+    </section>`;
+  };
+
+  document.title='Omnia — Creative Asset System V4.5 Partner Overview';
   saveState();
   console.info(V44_SHA_MARKER);
-
+  console.info(V45_SHA_MARKER);
 
   render();
 })();
