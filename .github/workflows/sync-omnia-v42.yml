@@ -1,4 +1,4 @@
-name: Build and publish Omnia V4.6 production source
+name: Build and publish Omnia V4.7 production source
 
 on:
   push:
@@ -21,41 +21,47 @@ jobs:
           ref: omnia-v4-1-live
           fetch-depth: 0
 
-      - name: Apply and verify the V4.6 sticky-rails update
-        shell: bash
-        run: |
-          set -euo pipefail
-          TARGET="omnia-creative-assets-v4-1/index.html"
-          PATCH_B64="omnia-creative-assets-v4-1/v46.diff.gz.b64"
-
-          test "$(wc -c < "$TARGET" | tr -d ' ')" = "504956"
-          echo "3edb54f55b73f5a6bf803733d9d8aa02c3a3d40715e41ca140dd30ac4c94d7e3  $TARGET" | sha256sum --check --strict
-          test -s "$PATCH_B64"
-
-          base64 --decode "$PATCH_B64" | gzip -dc > /tmp/v46.diff
-          test -s /tmp/v46.diff
-          patch -p0 --batch < /tmp/v46.diff
-
-          test "$(wc -c < "$TARGET" | tr -d ' ')" = "542795"
-          echo "042bb12e322b522eae519792a689a5067e161a7d4cc5567f6683653fb7ae0651  $TARGET" | sha256sum --check --strict
-          grep -Fq '<title>Omnia — Creative Asset System V4.6 Sticky Rails</title>' "$TARGET"
-          grep -Fq 'OMNIA_V46_STICKY_RAILS_CONCEPT_LAUNCH' "$TARGET"
-          grep -Fq 'v46-dashboard-sidebar' "$TARGET"
-          grep -Fq 'v46-stage-sidebar' "$TARGET"
-          grep -Fq 'v46-launch-concept' "$TARGET"
-          grep -Fq 'Media Buyer launch workspace' "$TARGET"
-
-      - name: Normalize the deployable V4.6 repository
+      - name: Apply and verify the V4.7 Figma-first update
         shell: bash
         run: |
           set -euo pipefail
           APP_DIR="omnia-creative-assets-v4-1"
-          rm -f "$APP_DIR/v46.diff.gz.b64"
+          TARGET="$APP_DIR/index.html"
+          PATCH_B64="$APP_DIR/v47.diff.gz.b64"
+
+          test "$(wc -c < "$TARGET" | tr -d ' ')" = "504956"
+          echo "3edb54f55b73f5a6bf803733d9d8aa02c3a3d40715e41ca140dd30ac4c94d7e3  $TARGET" | sha256sum --check --strict
+          test "$(wc -c < "$PATCH_B64" | tr -d ' ')" = "20848"
+          echo "2d7a4d75922e9805430ff4e0d796788ae26c1fb74eef33c33296b7ff8b3236f0  $PATCH_B64" | sha256sum --check --strict
+
+          base64 --decode "$PATCH_B64" | gzip -dc > /tmp/v47.diff
+          test "$(wc -c < /tmp/v47.diff | tr -d ' ')" = "71842"
+          echo "31cd681787833e7dd9b56b838e0bd85c395e9adfe041ef813e7933d5254e6b58  /tmp/v47.diff" | sha256sum --check --strict
+          (
+            cd "$APP_DIR"
+            patch -p0 --batch < /tmp/v47.diff
+          )
+
+          test "$(wc -c < "$TARGET" | tr -d ' ')" = "568738"
+          echo "d41fdfed5c70f2772115c385c1db2edd49a386f555576bacb137ea9f56fbca2e  $TARGET" | sha256sum --check --strict
+          grep -Fq '<title>Omnia — Creative Asset System V4.7 Figma-first</title>' "$TARGET"
+          grep -Fq 'OMNIA_V47_FIGMA_FIRST_PREVIEW_LIFECYCLE' "$TARGET"
+          grep -Fq 'Registered in Figma' "$TARGET"
+          grep -Fq 'No artificial design previews.' "$TARGET"
+          grep -Fq 'Preview lifecycle:' "$TARGET"
+          grep -Fq 'A thumbnail enters Omnia only after the final file is exported for Google Drive.' "$TARGET"
+
+      - name: Normalize the deployable V4.7 repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_DIR="omnia-creative-assets-v4-1"
+          rm -f "$APP_DIR/v46.diff.gz.b64" "$APP_DIR/v47.diff.gz.b64"
 
           cat > "$APP_DIR/package.json" <<'JSON'
           {
-            "name": "omnia-creative-assets-v4-6-live",
-            "version": "4.6.0",
+            "name": "omnia-creative-assets-v4-7-live",
+            "version": "4.7.0",
             "private": true
           }
           JSON
@@ -68,7 +74,7 @@ jobs:
           JSON
 
           cat > "$APP_DIR/README.md" <<'MD'
-          # Omnia Creative Asset System — V4.6 Sticky Rails
+          # Omnia Creative Asset System — V4.7 Figma-first
 
           Exact production source for the interactive We Scale Creators creative operating system prototype.
 
@@ -76,28 +82,33 @@ jobs:
 
           https://omnia-creative-assets-v4-1-live.vercel.app
 
-          ## V4.6 changes
+          ## V4.7 changes
 
-          - Creative Capacity and Creative Launch Activity now begin at the top of the dashboard partner overview and remain pinned in a scrolling operating rail.
-          - Creative Assets and Media Buyer Queue use standard readable software typography.
-          - Every batch stage has a pinned stage-action and submission rail.
-          - Launch assets are grouped by finalized concept with independently collapsible variation lists.
+          - Source-winner images may display because they come from Meta.
+          - Net-new concepts and variations remain text-only in Design and Copy while the visual work lives in Figma.
+          - Design completion is based on registering the requested Figma variations, not uploading premature final files.
+          - Finalize & Export shows no current-creative preview until the designer exports the file for Google Drive.
+          - Exported finals then become visible and flow into Launch.
 
           ## Integrity
 
           - File: `index.html`
-          - Bytes: `542795`
-          - SHA-256: `042bb12e322b522eae519792a689a5067e161a7d4cc5567f6683653fb7ae0651`
-          - Title: `Omnia — Creative Asset System V4.6 Sticky Rails`
+          - Bytes: `568738`
+          - SHA-256: `d41fdfed5c70f2772115c385c1db2edd49a386f555576bacb137ea9f56fbca2e`
+          - Title: `Omnia — Creative Asset System V4.7 Figma-first`
           MD
 
-      - name: Commit the exact V4.6 production source
+      - name: Commit the exact V4.7 production source
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "WSC Omnia Automation"
           git config user.email "admin@wescalecreators.com"
           git add -A omnia-creative-assets-v4-1
-          git commit -m "Ship exact Omnia V4.6 sticky rails source [skip ci]"
+          if git diff --cached --quiet; then
+            echo "Repository is already synchronized."
+            exit 0
+          fi
+          git commit -m "Ship exact Omnia V4.7 Figma-first source [skip ci]"
           git push origin HEAD:omnia-v4-1-live
-          echo "OMNIA_V46_GITHUB_PUBLISHED"
+          echo "OMNIA_V47_GITHUB_PUBLISHED"
