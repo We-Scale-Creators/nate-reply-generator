@@ -27,10 +27,39 @@ jobs:
           set -euo pipefail
           APP_DIR="omnia-creative-assets-v4-1"
           TARGET="$APP_DIR/index.html"
-          PATCH_B64="$APP_DIR/v47.diff.gz.b64"
+          PATCH_B64="/tmp/v47.diff.gz.b64"
 
           test "$(wc -c < "$TARGET" | tr -d ' ')" = "504956"
           echo "3edb54f55b73f5a6bf803733d9d8aa02c3a3d40715e41ca140dd30ac4c94d7e3  $TARGET" | sha256sum --check --strict
+
+          for PART in \
+            "$APP_DIR/v47.part0.b64" \
+            "$APP_DIR/v47.part1.b64" \
+            "$APP_DIR/v47.part2.b64" \
+            "$APP_DIR/v47.part3a.b64" \
+            "$APP_DIR/v47.part3b.b64"; do
+            test -s "$PART"
+          done
+
+          test "$(wc -c < "$APP_DIR/v47.part0.b64" | tr -d ' ')" = "5212"
+          test "$(wc -c < "$APP_DIR/v47.part1.b64" | tr -d ' ')" = "5212"
+          test "$(wc -c < "$APP_DIR/v47.part2.b64" | tr -d ' ')" = "5212"
+          test "$(wc -c < "$APP_DIR/v47.part3a.b64" | tr -d ' ')" = "2606"
+          test "$(wc -c < "$APP_DIR/v47.part3b.b64" | tr -d ' ')" = "2606"
+
+          echo "d6b225d7ac7d89c05e03b5abf29229e9c6a3a48a8e3d6350662cd36c476c0dd0  $APP_DIR/v47.part0.b64" | sha256sum --check --strict
+          echo "93802b0a130d42778b710d6603071462238cd48610d5fc0167fa792d57036c74  $APP_DIR/v47.part1.b64" | sha256sum --check --strict
+          echo "2783383f2f37f8a758e74c650f809666eb85942a644e27f2f23d328378c5327e  $APP_DIR/v47.part2.b64" | sha256sum --check --strict
+          echo "b2761222f70455820c9c0527d5bc6c7a4dab37b6988864ae5c19e4c34b2a4bcc  $APP_DIR/v47.part3a.b64" | sha256sum --check --strict
+          echo "ba218c84a620a180e407102eac571d89b58d813d9010e14b04a308b091c70ecf  $APP_DIR/v47.part3b.b64" | sha256sum --check --strict
+
+          cat \
+            "$APP_DIR/v47.part0.b64" \
+            "$APP_DIR/v47.part1.b64" \
+            "$APP_DIR/v47.part2.b64" \
+            "$APP_DIR/v47.part3a.b64" \
+            "$APP_DIR/v47.part3b.b64" > "$PATCH_B64"
+
           test "$(wc -c < "$PATCH_B64" | tr -d ' ')" = "20848"
           echo "2d7a4d75922e9805430ff4e0d796788ae26c1fb74eef33c33296b7ff8b3236f0  $PATCH_B64" | sha256sum --check --strict
 
@@ -44,7 +73,8 @@ jobs:
 
           test "$(wc -c < "$TARGET" | tr -d ' ')" = "568738"
           echo "d41fdfed5c70f2772115c385c1db2edd49a386f555576bacb137ea9f56fbca2e  $TARGET" | sha256sum --check --strict
-          grep -Fq '<title>Omnia — Creative Asset System V4.7 Figma-first</title>' "$TARGET"
+          grep -Fq '<title>Omnia — Creative Asset System V4.6 Sticky Rails</title>' "$TARGET"
+          grep -Fq "document.title='Omnia — Creative Asset System V4.7 Figma-first';" "$TARGET"
           grep -Fq 'OMNIA_V47_FIGMA_FIRST_PREVIEW_LIFECYCLE' "$TARGET"
           grep -Fq 'Registered in Figma' "$TARGET"
           grep -Fq 'No artificial design previews.' "$TARGET"
@@ -56,7 +86,14 @@ jobs:
         run: |
           set -euo pipefail
           APP_DIR="omnia-creative-assets-v4-1"
-          rm -f "$APP_DIR/v46.diff.gz.b64" "$APP_DIR/v47.diff.gz.b64"
+          rm -f \
+            "$APP_DIR/v46.diff.gz.b64" \
+            "$APP_DIR/v47.diff.gz.b64" \
+            "$APP_DIR/v47.part0.b64" \
+            "$APP_DIR/v47.part1.b64" \
+            "$APP_DIR/v47.part2.b64" \
+            "$APP_DIR/v47.part3a.b64" \
+            "$APP_DIR/v47.part3b.b64"
 
           cat > "$APP_DIR/package.json" <<'JSON'
           {
@@ -95,7 +132,7 @@ jobs:
           - File: `index.html`
           - Bytes: `568738`
           - SHA-256: `d41fdfed5c70f2772115c385c1db2edd49a386f555576bacb137ea9f56fbca2e`
-          - Title: `Omnia — Creative Asset System V4.7 Figma-first`
+          - Runtime title: `Omnia — Creative Asset System V4.7 Figma-first`
           MD
 
       - name: Commit the exact V4.7 production source
