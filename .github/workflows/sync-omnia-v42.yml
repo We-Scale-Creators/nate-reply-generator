@@ -1,4 +1,4 @@
-name: Build and publish Omnia V4.8 editable-finals source
+name: Sync exact Omnia V4.8 editable-finals production source
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  build-publish-and-verify:
+  sync-production-source:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Omnia production branch
@@ -21,59 +21,40 @@ jobs:
           ref: omnia-v4-1-live
           fetch-depth: 0
 
-      - name: Rebuild exact V4.8 source from verified production inputs
+      - name: Fetch and verify the live V4.8 production bundle
         shell: bash
         run: |
           set -euo pipefail
           APP_DIR="omnia-creative-assets-v4-1"
           TARGET="$APP_DIR/index.html"
-          PATCH_B64="$APP_DIR/v48.diff.gz.b64"
+          mkdir -p "$APP_DIR"
 
           curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
-            "https://omnia-creative-assets-v4-1-live.vercel.app/?github_v48_base=2" \
-            --output /tmp/v46-production.html
+            "https://omnia-creative-assets-v4-1-live.vercel.app/?github_sync=$(date +%s)" \
+            --output "$TARGET"
 
-          echo "BASE $(wc -c < /tmp/v46-production.html | tr -d ' ') $(sha256sum /tmp/v46-production.html | cut -d' ' -f1)"
-          test "$(wc -c < /tmp/v46-production.html | tr -d ' ')" = "542795"
-          echo "042bb12e322b522eae519792a689a5067e161a7d4cc5567f6683653fb7ae0651  /tmp/v46-production.html" | sha256sum --check --strict
-
-          echo "PATCH_TEXT $(wc -c < "$PATCH_B64" | tr -d ' ') $(sha256sum "$PATCH_B64" | cut -d' ' -f1)"
-          test "$(wc -c < "$PATCH_B64" | tr -d ' ')" = "11512"
-          base64 --decode "$PATCH_B64" > /tmp/v48.diff.gz
-          echo "PATCH_GZIP $(wc -c < /tmp/v48.diff.gz | tr -d ' ') $(sha256sum /tmp/v48.diff.gz | cut -d' ' -f1)"
-          gzip -dc /tmp/v48.diff.gz > /tmp/v48.diff
-          echo "PATCH_DIFF $(wc -c < /tmp/v48.diff | tr -d ' ') $(sha256sum /tmp/v48.diff | cut -d' ' -f1)"
-          test "$(wc -c < /tmp/v48.diff | tr -d ' ')" = "36427"
-          echo "a8526110c0df3dc8271bd7ba5d8a8d1d54c45c96a160a099ec11506ea7225d08  /tmp/v48.diff" | sha256sum --check --strict
-
-          cp /tmp/v46-production.html "$TARGET"
-          (
-            cd "$APP_DIR"
-            patch -p0 --batch < /tmp/v48.diff
-          )
-
-          echo "FINAL $(wc -c < "$TARGET" | tr -d ' ') $(sha256sum "$TARGET" | cut -d' ' -f1)"
-          test "$(wc -c < "$TARGET" | tr -d ' ')" = "578244"
-          echo "2f9741cda598389f57c3a5b352809fc5d49407055c85fe8ca758c89b089ab116  $TARGET" | sha256sum --check --strict
+          test "$(wc -c < "$TARGET" | tr -d ' ')" = "590656"
+          echo "b2d1c4a3264f7529bdea748c42a779ba7eed90cee68d1a47f80f57f67d48afa1  $TARGET" | sha256sum --check --strict
           grep -Fq '<title>Omnia — Creative Asset System V4.8 Editable Finals</title>' "$TARGET"
-          grep -Fq 'OMNIA_V47_FIGMA_UNTIL_DRIVE' "$TARGET"
           grep -Fq 'OMNIA_V48_EDITABLE_FINAL_DELIVERIES' "$TARGET"
-          grep -Fq 'Replace final' "$TARGET"
-          grep -Fq 'Remove final' "$TARGET"
-          grep -Fq 'Launch handoff reopened' "$TARGET"
-          echo "OMNIA_V48_SOURCE_REBUILT_AND_VERIFIED"
+          grep -Fq 'Only Meta source winners display visually before export' "$TARGET"
+          grep -Fq 'replace-final-v48' "$TARGET"
+          grep -Fq 'remove-final-v48' "$TARGET"
+          grep -Fq 'resubmit-launch-v48' "$TARGET"
+          grep -Fq 'Design and Copy remain locked' "$TARGET"
+          echo "OMNIA_V48_LIVE_SOURCE_VERIFIED"
 
-      - name: Normalize the deployable V4.8 repository
+      - name: Normalize the deployable repository
         shell: bash
         run: |
           set -euo pipefail
           APP_DIR="omnia-creative-assets-v4-1"
-          rm -f "$APP_DIR"/v46.diff.gz.b64 "$APP_DIR"/v47*.b64 "$APP_DIR"/v48*.b64
+          rm -f "$APP_DIR"/*.b64 "$APP_DIR"/*.gz "$APP_DIR"/*.diff "$APP_DIR"/build.mjs
 
           cat > "$APP_DIR/package.json" <<'JSON'
           {
             "name": "omnia-creative-assets-v4-8-live",
-            "version": "4.8.0",
+            "version": "4.8.1",
             "private": true
           }
           JSON
@@ -88,29 +69,30 @@ jobs:
           cat > "$APP_DIR/README.md" <<'MD'
           # Omnia Creative Asset System — V4.8 Editable Finals
 
-          Exact production source for the final reviewed We Scale Creators creative operating-system prototype.
+          Exact source of the live We Scale Creators creative operating-system prototype.
 
           ## Live production
 
           https://omnia-creative-assets-v4-1-live.vercel.app
 
-          ## Final-delivery behavior
+          ## Final workflow behavior
 
-          - Source-winner images can display from Meta; unexported concepts and variations remain Figma-only.
-          - Final images enter Omnia only after export or Drive confirmation.
-          - Designers can replace or remove a submitted final without unlocking Design or Copy.
-          - Correcting a submitted final reopens and blocks the media-buyer handoff until the revised final is attached and the batch is resubmitted.
-          - The affected asset moves to Rebuild Required so stale launch files cannot be used silently.
+          - Only Meta source winners appear visually before export; net-new concepts and variations remain Figma-only.
+          - Final assets become visible only after export or Google Drive confirmation.
+          - Designers can replace or remove a submitted non-live final.
+          - Any correction flags the delivery, pauses the media-buyer handoff, and requires a corrected final plus resubmission.
+          - Design and Copy remain locked while the final-delivery correction is made.
+          - Live permanent asset IDs remain immutable.
 
           ## Integrity
 
           - File: `index.html`
-          - Bytes: `578244`
-          - SHA-256: `2f9741cda598389f57c3a5b352809fc5d49407055c85fe8ca758c89b089ab116`
-          - Runtime title: `Omnia — Creative Asset System V4.8 Editable Finals`
+          - Bytes: `590656`
+          - SHA-256: `b2d1c4a3264f7529bdea748c42a779ba7eed90cee68d1a47f80f57f67d48afa1`
+          - Title: `Omnia — Creative Asset System V4.8 Editable Finals`
           MD
 
-      - name: Commit exact V4.8 source
+      - name: Commit exact production source
         shell: bash
         run: |
           set -euo pipefail
@@ -121,6 +103,6 @@ jobs:
             echo "Repository is already synchronized."
             exit 0
           fi
-          git commit -m "Ship exact Omnia V4.8 editable-finals source [skip ci]"
+          git commit -m "Ship exact Omnia V4.8 editable-finals production source [skip ci]"
           git push origin HEAD:omnia-v4-1-live
-          echo "OMNIA_V48_GITHUB_PUBLISHED"
+          echo "OMNIA_V48_GITHUB_SOURCE_PUBLISHED"
