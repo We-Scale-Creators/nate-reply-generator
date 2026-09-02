@@ -21,7 +21,7 @@ jobs:
           ref: omnia-v4-1-live
           fetch-depth: 0
 
-      - name: Rebuild exact V4.8 source from the verified V4.6 production base
+      - name: Rebuild exact V4.8 source from verified production inputs
         shell: bash
         run: |
           set -euo pipefail
@@ -30,15 +30,19 @@ jobs:
           PATCH_B64="$APP_DIR/v48.diff.gz.b64"
 
           curl --fail --silent --show-error --location --retry 5 --retry-all-errors \
-            "https://omnia-creative-assets-v4-1-live.vercel.app/?github_v48_base=1" \
+            "https://omnia-creative-assets-v4-1-live.vercel.app/?github_v48_base=2" \
             --output /tmp/v46-production.html
 
+          echo "BASE $(wc -c < /tmp/v46-production.html | tr -d ' ') $(sha256sum /tmp/v46-production.html | cut -d' ' -f1)"
           test "$(wc -c < /tmp/v46-production.html | tr -d ' ')" = "542795"
           echo "042bb12e322b522eae519792a689a5067e161a7d4cc5567f6683653fb7ae0651  /tmp/v46-production.html" | sha256sum --check --strict
-          test "$(wc -c < "$PATCH_B64" | tr -d ' ')" = "11512"
-          echo "181512ffdf73ce20d023ac7ef6b00b23e2910e262db6a57e0058e261e3adc5b2  $PATCH_B64" | sha256sum --check --strict
 
-          base64 --decode "$PATCH_B64" | gzip -dc > /tmp/v48.diff
+          echo "PATCH_TEXT $(wc -c < "$PATCH_B64" | tr -d ' ') $(sha256sum "$PATCH_B64" | cut -d' ' -f1)"
+          test "$(wc -c < "$PATCH_B64" | tr -d ' ')" = "11512"
+          base64 --decode "$PATCH_B64" > /tmp/v48.diff.gz
+          echo "PATCH_GZIP $(wc -c < /tmp/v48.diff.gz | tr -d ' ') $(sha256sum /tmp/v48.diff.gz | cut -d' ' -f1)"
+          gzip -dc /tmp/v48.diff.gz > /tmp/v48.diff
+          echo "PATCH_DIFF $(wc -c < /tmp/v48.diff | tr -d ' ') $(sha256sum /tmp/v48.diff | cut -d' ' -f1)"
           test "$(wc -c < /tmp/v48.diff | tr -d ' ')" = "36427"
           echo "a8526110c0df3dc8271bd7ba5d8a8d1d54c45c96a160a099ec11506ea7225d08  /tmp/v48.diff" | sha256sum --check --strict
 
@@ -48,6 +52,7 @@ jobs:
             patch -p0 --batch < /tmp/v48.diff
           )
 
+          echo "FINAL $(wc -c < "$TARGET" | tr -d ' ') $(sha256sum "$TARGET" | cut -d' ' -f1)"
           test "$(wc -c < "$TARGET" | tr -d ' ')" = "578244"
           echo "2f9741cda598389f57c3a5b352809fc5d49407055c85fe8ca758c89b089ab116  $TARGET" | sha256sum --check --strict
           grep -Fq '<title>Omnia — Creative Asset System V4.8 Editable Finals</title>' "$TARGET"
@@ -63,15 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           APP_DIR="omnia-creative-assets-v4-1"
-          rm -f \
-            "$APP_DIR/v46.diff.gz.b64" \
-            "$APP_DIR/v47.diff.gz.b64" \
-            "$APP_DIR/v47.part0.b64" \
-            "$APP_DIR/v47.part1.b64" \
-            "$APP_DIR/v47.part2.b64" \
-            "$APP_DIR/v47.part3a.b64" \
-            "$APP_DIR/v47.part3b.b64" \
-            "$APP_DIR/v48.diff.gz.b64"
+          rm -f "$APP_DIR"/v46.diff.gz.b64 "$APP_DIR"/v47*.b64 "$APP_DIR"/v48*.b64
 
           cat > "$APP_DIR/package.json" <<'JSON'
           {
@@ -97,9 +94,9 @@ jobs:
 
           https://omnia-creative-assets-v4-1-live.vercel.app
 
-          ## V4.8 final-delivery behavior
+          ## Final-delivery behavior
 
-          - Source-winner images can display from Meta; unexported concept and variation work remains Figma-only.
+          - Source-winner images can display from Meta; unexported concepts and variations remain Figma-only.
           - Final images enter Omnia only after export or Drive confirmation.
           - Designers can replace or remove a submitted final without unlocking Design or Copy.
           - Correcting a submitted final reopens and blocks the media-buyer handoff until the revised final is attached and the batch is resubmitted.
@@ -113,7 +110,7 @@ jobs:
           - Runtime title: `Omnia — Creative Asset System V4.8 Editable Finals`
           MD
 
-      - name: Commit the exact V4.8 production source
+      - name: Commit exact V4.8 source
         shell: bash
         run: |
           set -euo pipefail
